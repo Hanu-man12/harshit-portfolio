@@ -65,39 +65,6 @@ function RedParticles({ mobile }: { mobile: boolean }) {
   );
 }
 
-function Atmosphere() {
-  return (
-    <mesh scale={1.025}>
-      <sphereGeometry args={[1.42, 56, 56]} />
-      <shaderMaterial
-        side={THREE.BackSide}
-        transparent
-        depthWrite={false}
-        uniforms={{ atmosphereColor: { value: new THREE.Color('#ef1837') } }}
-        vertexShader={`
-          varying vec3 vNormal;
-          varying vec3 vViewPosition;
-          void main() {
-            vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-            vNormal = normalize(normalMatrix * normal);
-            vViewPosition = normalize(-viewPosition.xyz);
-            gl_Position = projectionMatrix * viewPosition;
-          }
-        `}
-        fragmentShader={`
-          uniform vec3 atmosphereColor;
-          varying vec3 vNormal;
-          varying vec3 vViewPosition;
-          void main() {
-            float rim = pow(1.0 - max(dot(normalize(vNormal), normalize(vViewPosition)), 0.0), 3.1);
-            gl_FragColor = vec4(atmosphereColor, rim * 0.34);
-          }
-        `}
-      />
-    </mesh>
-  );
-}
-
 function Planet({ texture, mobile }: { texture: THREE.Texture | null; mobile: boolean }) {
   const planetRef = useRef<THREE.Group>(null);
   useFrame((_, delta) => {
@@ -106,34 +73,16 @@ function Planet({ texture, mobile }: { texture: THREE.Texture | null; mobile: bo
   });
 
   return (
-    <group ref={planetRef} position={mobile ? [0, 0.42, 0] : [1.28, 0.02, 0]} scale={mobile ? 0.68 : 1}>
+    <group ref={planetRef} position={mobile ? [0, 0.42, 0] : [1.28, 0.02, 0]} scale={mobile ? 0.5 : 1}>
       <mesh>
         <sphereGeometry args={[1.42, 72, 72]} />
         <meshStandardMaterial map={texture ?? undefined} color={texture ? '#ffffff' : '#a23a32'} roughness={0.96} metalness={0.02} />
       </mesh>
-      <Atmosphere />
     </group>
   );
 }
 
-function OrbitalRing({ mobile }: { mobile: boolean }) {
-  const ref = useRef<THREE.Group>(null);
-  useFrame((_, delta) => {
-    if (document.visibilityState !== 'visible') return;
-    if (ref.current) ref.current.rotation.z += delta * 0.035;
-  });
-
-  return (
-    <group ref={ref} position={mobile ? [0, 0.42, 0] : [1.28, 0.02, 0]} scale={mobile ? 0.68 : 1} rotation={[0.48, 0.14, -0.24]}>
-      <mesh scale={[1.55, 1.18, 1]}>
-        <torusGeometry args={[1.82, 0.012, 8, 220]} />
-        <meshBasicMaterial color="#f2183b" transparent opacity={0.88} toneMapped={false} depthWrite={false} />
-      </mesh>
-    </group>
-  );
-}
-
-export default function RedOrbitScene({ texture, mobile }: { texture: THREE.Texture | null; mobile: boolean }) {
+export default function RedOrbitScene({ texture, mobile, onReady }: { texture: THREE.Texture | null; mobile: boolean; onReady: () => void }) {
   return (
     <Canvas
       className="h-full w-full"
@@ -144,6 +93,7 @@ export default function RedOrbitScene({ texture, mobile }: { texture: THREE.Text
         gl.outputColorSpace = THREE.SRGBColorSpace;
         gl.toneMapping = THREE.ACESFilmicToneMapping;
         gl.toneMappingExposure = 1.12;
+        onReady();
       }}
     >
       <ambientLight intensity={0.34} color="#bac2dc" />
@@ -151,7 +101,6 @@ export default function RedOrbitScene({ texture, mobile }: { texture: THREE.Text
       <pointLight position={[2.8, -1.2, -2]} intensity={1.1} distance={7} color="#a90e2e" />
       <StarField mobile={mobile} />
       <RedParticles mobile={mobile} />
-      <OrbitalRing mobile={mobile} />
       <Planet texture={texture} mobile={mobile} />
     </Canvas>
   );

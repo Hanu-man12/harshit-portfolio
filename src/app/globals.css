@@ -46,19 +46,36 @@
 }
 
 [data-theme="light"] .red-orbit-preloader {
-  --loader-text: #17151a;
-  --loader-muted: rgba(23, 21, 26, 0.66);
-  --loader-track: rgba(23, 21, 26, 0.18);
-  background-color: #f3f2f4;
-  background-image:
-    radial-gradient(ellipse at 70% 46%, rgba(193, 18, 31, 0.13), transparent 35%),
-    radial-gradient(ellipse at 14% 30%, rgba(193, 18, 31, 0.09), transparent 30%),
-    linear-gradient(115deg, #f8f7f8 0%, #eeedf0 52%, #f7f6f7 100%);
+  --loader-text: #f4f1f2;
+  --loader-muted: rgba(244, 241, 242, 0.72);
+  --loader-track: rgba(244, 241, 242, 0.25);
+  background-color: #030307;
+}
+
+.red-orbit-landscape {
+  z-index: 0;
+  overflow: hidden;
+}
+
+.red-orbit-landscape img {
+  object-fit: cover;
+  object-position: center center;
+  opacity: 0.64;
+  filter: brightness(0.67) saturate(1.08);
+}
+
+.red-orbit-shade {
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(3, 3, 7, 0.34) 0%, rgba(3, 3, 7, 0.08) 45%, rgba(3, 3, 7, 0.16) 100%),
+    linear-gradient(0deg, rgba(3, 3, 7, 0.45) 0%, transparent 40%, rgba(3, 3, 7, 0.08) 100%),
+    radial-gradient(ellipse at 67% 45%, transparent 0%, rgba(3, 3, 7, 0.12) 55%, rgba(3, 3, 7, 0.4) 100%);
 }
 
 .red-orbit-nebula {
   position: absolute;
   inset: -18%;
+  z-index: 2;
   pointer-events: none;
   opacity: 0.62;
   background:
@@ -74,6 +91,7 @@
 }
 
 .red-orbit-scene {
+  z-index: 3;
   filter: drop-shadow(0 0 18px rgba(205, 22, 49, 0.14));
   transform-origin: 62% 50%;
 }
@@ -98,8 +116,76 @@
   box-shadow: 0 0 14px var(--accent-glow);
 }
 
+.red-orbit-loader-group {
+  width: clamp(220px, 26vw, 360px);
+  max-width: 80vw;
+}
+
+.red-orbit-primary-track {
+  width: 100%;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--loader-track);
+  box-shadow: 0 0 22px rgba(224, 28, 55, 0.16);
+}
+
 .red-orbit-progress {
-  box-shadow: 0 0 12px var(--accent-glow);
+  position: relative;
+  min-width: 2px;
+  overflow: hidden;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #fff 0%, #ffb4bc 42%, #f2183b 100%);
+  box-shadow: 0 0 12px rgba(242, 24, 59, 0.55);
+  transition: width 180ms linear;
+}
+
+.red-orbit-progress::after {
+  position: absolute;
+  inset: 0 auto 0 -36px;
+  width: 36px;
+  content: "";
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.86), transparent);
+  animation: red-orbit-progress-shine 1.25s ease-in-out infinite;
+}
+
+.red-orbit-secondary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 11px;
+}
+
+.red-orbit-secondary-label {
+  color: var(--loader-muted);
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+}
+
+.red-orbit-percent-loader {
+  position: relative;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  place-items: center;
+}
+
+.red-orbit-percent-track {
+  stroke: var(--loader-track);
+}
+
+.red-orbit-percent-value {
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 3px var(--accent-glow));
+  transition: stroke-dashoffset 180ms linear;
+}
+
+.red-orbit-percent {
+  color: var(--loader-text);
+  font-size: 0.55rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .red-orbit-light-sweep {
@@ -107,18 +193,6 @@
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08) 38%, rgba(243, 35, 62, 0.36) 52%, transparent 100%);
   filter: blur(9px);
   transform: skewX(-14deg);
-}
-
-.red-orbit-fallback-ring {
-  position: absolute;
-  top: 50%;
-  left: 61%;
-  width: min(54vw, 700px);
-  height: min(23vw, 290px);
-  border: 1px solid rgba(242, 24, 59, 0.86);
-  border-radius: 50%;
-  box-shadow: 0 0 9px rgba(242, 24, 59, 0.6), inset 0 0 7px rgba(242, 24, 59, 0.22);
-  transform: translate(-50%, -50%) rotate(-19deg);
 }
 
 .red-orbit-fallback-planet {
@@ -131,7 +205,7 @@
   background:
     radial-gradient(circle at 33% 26%, rgba(255, 152, 102, 0.72), transparent 9%),
     radial-gradient(circle at 33% 28%, #b64d39 0%, #7a1c24 36%, #1a1018 69%, #07070b 76%);
-  box-shadow: -16px -4px 44px rgba(224, 33, 58, 0.24), inset -28px -12px 45px rgba(0, 0, 0, 0.88), inset 7px 0 14px rgba(255, 70, 67, 0.56);
+  box-shadow: inset -28px -12px 45px rgba(0, 0, 0, 0.88), inset 7px 0 14px rgba(255, 70, 67, 0.56);
   transform: translate(-50%, -50%);
 }
 
@@ -145,38 +219,77 @@
   50% { opacity: 1; transform: scale(1.08); }
 }
 
+@keyframes red-orbit-progress-shine {
+  from { transform: translateX(0); }
+  to { transform: translateX(150px); }
+}
+
 @media (max-width: 767px) {
   .red-orbit-copy {
     align-items: flex-end;
-    padding-bottom: 14vh;
+    padding-bottom: max(7vh, 38px);
+  }
+
+  .red-orbit-landscape img {
+    object-position: 52% center;
+    opacity: 0.72;
+    filter: brightness(0.62) saturate(1.08);
+  }
+
+  .red-orbit-shade {
+    background:
+      linear-gradient(0deg, rgba(3, 3, 7, 0.8) 0%, rgba(3, 3, 7, 0.12) 48%, rgba(3, 3, 7, 0.22) 100%),
+      radial-gradient(ellipse at 50% 34%, rgba(3, 3, 7, 0.02) 0%, rgba(3, 3, 7, 0.22) 72%, rgba(3, 3, 7, 0.48) 100%);
+  }
+
+  .red-orbit-nebula {
+    opacity: 0.34;
   }
 
   .red-orbit-title {
-    font-size: clamp(2.4rem, 10.2vw, 4.4rem);
+    font-size: clamp(2.3rem, 9.6vw, 3.8rem);
     letter-spacing: 0.025em;
+  }
+
+  .red-orbit-status {
+    margin-top: 0.9rem;
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+  }
+
+  .red-orbit-loader-group {
+    width: min(230px, 78vw);
+    position: relative;
+    left: 50%;
+    margin: 0.9rem 0 0;
+    transform: translateX(-50%);
+  }
+
+  .red-orbit-primary-track {
+    height: 3px;
+  }
+
+  .red-orbit-secondary-row {
+    justify-content: center;
+    gap: 16px;
+    margin-top: 10px;
   }
 
   .red-orbit-scene {
     transform-origin: 50% 40%;
   }
 
-  .red-orbit-fallback-ring {
-    top: 40%;
-    left: 50%;
-    width: min(94vw, 530px);
-    height: min(42vw, 220px);
-  }
-
   .red-orbit-fallback-planet {
-    top: 40%;
+    top: 39%;
     left: 50%;
-    width: min(54vw, 300px);
+    width: min(48vw, 260px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .red-orbit-nebula,
-  .red-orbit-status-dot {
+  .red-orbit-status-dot,
+  .red-orbit-progress::after {
     animation: none;
   }
 }
