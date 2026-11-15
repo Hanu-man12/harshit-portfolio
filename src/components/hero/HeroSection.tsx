@@ -3,7 +3,6 @@ import { useEffect, useRef, useState, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
-import gsap from 'gsap';
 import { profile } from '@/data/profile';
 import { assets } from '@/data/assets';
 import { useMediaTier } from '@/lib/useMediaTier';
@@ -79,7 +78,7 @@ export default function HeroSection() {
   return (
     <section id="hero" className="relative min-h-screen flex flex-col md:flex-row overflow-hidden">
       {/* Left side */}
-      <div className="flex-1 flex flex-col justify-center px-6 md:px-16 pt-20 pb-12 z-10">
+      <div className="flex-1 flex flex-col justify-center px-5 sm:px-6 md:px-16 pt-24 md:pt-20 pb-10 md:pb-12 z-10">
         {/* Badge */}
         <div className="inline-flex items-center gap-2 border border-[var(--accent-dim)] bg-[var(--accent-dim)] rounded-full px-3 py-1 mb-6 w-fit">
           <span className="w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
@@ -89,7 +88,7 @@ export default function HeroSection() {
         {/* Name */}
         <h1
           ref={nameRef}
-          className="text-7xl md:text-9xl font-display leading-none text-[var(--text)] mb-4"
+          className="text-[clamp(3rem,12vw,8rem)] font-display leading-[0.9] text-[var(--text)] mb-4"
           style={{fontFamily: 'var(--font-display)'}}
         >
           HARSHIT SHAW
@@ -130,7 +129,7 @@ export default function HeroSection() {
       </div>
 
       {/* Right side */}
-      <div className="hidden md:flex flex-1 items-center justify-center relative">
+      <div className="absolute inset-0 flex items-center justify-center opacity-25 pointer-events-none md:relative md:inset-auto md:flex-1 md:opacity-100 md:pointer-events-auto">
         {tier === 'desktop' ? (
           <Suspense fallback={<div className="w-full h-full" />}>
             <div style={{width: '100%', height: '100%', minHeight: 500}}>
@@ -144,6 +143,7 @@ export default function HeroSection() {
             width={assets.hero.heroBgMobile.width}
             height={assets.hero.heroBgMobile.height}
             className="object-cover w-full h-full"
+            loading="eager"
           />
         )}
         {/* Astronaut */}
@@ -157,6 +157,7 @@ export default function HeroSection() {
             alt={assets.hero.astronaut.alt}
             width={assets.hero.astronaut.width}
             height={assets.hero.astronaut.height}
+            className="w-36 sm:w-44 md:w-[min(30vw,400px)] h-auto"
             priority
             sizes="(max-width: 768px) 100vw, 400px"
           />

@@ -17,7 +17,7 @@ export default function OpenSourcePage() {
         <Link href="/" className="text-sm text-[var(--text-muted)] hover:text-[var(--accent)] mb-8 inline-flex items-center gap-1">
           &larr; Back
         </Link>
-        <h1 className="text-6xl md:text-8xl font-display mb-16" style={{fontFamily: 'var(--font-display)'}}>OPEN SOURCE</h1>
+        <h1 className="text-[clamp(2.75rem,11vw,6rem)] md:text-8xl font-display mb-12 md:mb-16 leading-none" style={{fontFamily: 'var(--font-display)'}}>OPEN SOURCE</h1>
         <div className="flex flex-col gap-4">
           {visible.map(pr => (
             <div key={pr.id} className="flex items-start gap-4 border border-[var(--border)] bg-[var(--surface)] p-5 rounded-sm">

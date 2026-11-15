@@ -27,7 +27,7 @@ export default function SectionHeading({ title, subtitle }: { title: string; sub
     <div className="mb-12">
       <h2
         ref={ref}
-        className="font-display text-6xl md:text-8xl text-[var(--text)] uppercase leading-none"
+        className="font-display text-[clamp(2.75rem,11vw,6rem)] md:text-8xl text-[var(--text)] uppercase leading-none"
         style={{fontFamily: 'var(--font-display)'}}
       >
         {title}

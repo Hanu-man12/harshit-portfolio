@@ -11,7 +11,7 @@ const STATS = [
 
 export default function HeroStats() {
   return (
-    <div className="flex gap-8 mt-8">
+    <div className="flex flex-wrap gap-x-6 gap-y-4 sm:gap-8 mt-8">
       {STATS.map(stat => (
         <div key={stat.label}>
           <div className="text-4xl font-display text-[var(--accent)]" style={{fontFamily: 'var(--font-display)'}}>

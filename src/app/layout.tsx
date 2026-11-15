@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Harshit Shaw — Backend Developer & Open-Source Contributor',
     description: 'Building scalable backend systems, working with PostgreSQL, and exploring real-world AI & cloud solutions.',
-    images: [{ url: '/images/og/og-image.png', width: 1200, height: 630 }],
+    images: [{ url: '/images/og/og-image.svg', width: 1200, height: 630 }],
   },
 };
 
@@ -37,6 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${bebasNeue.variable} ${inter.variable} ${jetBrainsMono.variable}`}
       suppressHydrationWarning
     >

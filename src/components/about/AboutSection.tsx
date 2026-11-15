@@ -17,7 +17,7 @@ export default function AboutSection() {
         className="grid md:grid-cols-2 gap-16 items-center"
       >
         {/* Left: photo */}
-        <motion.div variants={fadeUp} className="relative w-fit mx-auto md:mx-0">
+        <motion.div variants={fadeUp} className="relative w-full max-w-[400px] mx-auto md:mx-0">
           <div className="relative">
             {/* HUD corner brackets */}
             <span className="absolute -top-2 -left-2 w-5 h-5 border-t-2 border-l-2 border-[var(--accent)] z-10" />
@@ -29,7 +29,7 @@ export default function AboutSection() {
               alt={assets.about.profile.alt}
               width={400}
               height={500}
-              className="rounded-sm object-cover"
+              className="w-full h-auto rounded-sm object-cover"
               style={{boxShadow: '0 0 40px var(--accent-glow)'}}
               sizes="(max-width: 768px) 90vw, 400px"
             />

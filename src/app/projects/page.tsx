@@ -11,7 +11,7 @@ export default function ProjectsPage() {
         <Link href="/" className="text-sm text-[var(--text-muted)] hover:text-[var(--accent)] mb-8 inline-flex items-center gap-1">
           &larr; Back
         </Link>
-        <h1 className="text-6xl md:text-8xl font-display mb-16" style={{fontFamily: 'var(--font-display)'}}>ALL PROJECTS</h1>
+        <h1 className="text-[clamp(2.75rem,11vw,6rem)] md:text-8xl font-display mb-12 md:mb-16 leading-none" style={{fontFamily: 'var(--font-display)'}}>ALL PROJECTS</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {visible.map(project => (
             <TiltCard key={project.slug}>
