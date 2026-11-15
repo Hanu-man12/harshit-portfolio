@@ -1,0 +1,5 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <rect width="800" height="800" fill="#0a0a0a"/>
+  <rect x="8" y="8" width="784" height="784" stroke="#e63946" stroke-width="4" fill="none"/>
+  <text x="50%" y="50%" fill="#ffffff" font-family="monospace" font-size="24" text-anchor="middle" dominant-baseline="middle">aws-innovation-cup.png</text>
+</svg>
