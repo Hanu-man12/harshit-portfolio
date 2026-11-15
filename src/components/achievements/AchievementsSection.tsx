@@ -10,7 +10,7 @@ export default function AchievementsSection() {
   return (
     <section id="achievements" className="py-24 px-6 md:px-16">
       <div className="max-w-7xl mx-auto">
-        <SectionHeading title="ACHIEVEMENTS" />
+        <SectionHeading title="HACKATHON POSITIONS" />
         <motion.div
           initial="hidden"
           whileInView="visible"

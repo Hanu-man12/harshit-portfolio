@@ -16,9 +16,8 @@ const PlanetScene = dynamic(() => import('@/components/three/PlanetScene'), { ss
 const SECTION_DOTS = [
   { id: 'hero', label: '01' },
   { id: 'about', label: '02' },
-  { id: 'experience', label: '03' },
-  { id: 'projects', label: '04' },
-  { id: 'contact', label: '05' },
+  { id: 'internship', label: '03' },
+  { id: 'skills', label: '04' },
 ];
 
 export default function HeroSection() {

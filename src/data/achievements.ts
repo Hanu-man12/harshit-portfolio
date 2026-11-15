@@ -7,8 +7,8 @@ export const achievements = [
   },
   {
     id: "aws-innovation-cup", title: "AWS Innovation Cup — Finalist", subtitle: "",
-    project: "Fan Squad", team: "",
-    description: "Gamified football second-screen app. React Native, TypeScript, Expo front-end; Python WebSocket prototype backend; AWS serverless architecture planned.",
+    project: "", team: "",
+    description: "Finalist at the AWS Innovation Cup.",
     image: "/images/achievements/aws-innovation-cup.svg", visible: true,
   },
 ];

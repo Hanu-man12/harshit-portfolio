@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { projects } from '@/data/projects';
+import { getRepositoryReadme } from '@/lib/github';
+import ReadmeContent from '@/components/projects/ReadmeContent';
 
 export async function generateStaticParams() {
   return projects.filter(p => p.visible).map(p => ({ slug: p.slug }));
@@ -15,9 +17,10 @@ export default async function ProjectDetailPage({
   const { slug } = await params;
   const project = projects.find(p => p.slug === slug);
   if (!project) notFound();
+  const readme = await getRepositoryReadme(project.repository);
 
   return (
-    <main className="min-h-screen py-24 px-6 md:px-16">
+    <main id="main-content" className="min-h-screen py-24 px-6 md:px-16">
       <div className="max-w-4xl mx-auto">
         <Link href="/projects" className="text-sm text-[var(--text-muted)] hover:text-[var(--accent)] mb-8 inline-flex items-center gap-1">
           &larr; All Projects
@@ -45,6 +48,17 @@ export default async function ProjectDetailPage({
             </a>
           )}
         </div>
+        {readme && (
+          <section className="mt-16 border-t border-[var(--border)] pt-10">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+              <h2 className="text-3xl font-display" style={{fontFamily: 'var(--font-display)'}}>PROJECT README</h2>
+              <a href={`${project.github}/blob/HEAD/README.md`} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--accent)] hover:underline">
+                Open on GitHub &rarr;
+              </a>
+            </div>
+            <ReadmeContent content={readme} />
+          </section>
+        )}
       </div>
     </main>
   );

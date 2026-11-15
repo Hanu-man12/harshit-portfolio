@@ -12,7 +12,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function OpenSourcePage() {
   const visible = pullRequests.filter(pr => pr.visible);
   return (
-    <main className="min-h-screen py-24 px-6 md:px-16">
+    <main id="main-content" className="min-h-screen py-24 px-6 md:px-16">
       <div className="max-w-4xl mx-auto">
         <Link href="/" className="text-sm text-[var(--text-muted)] hover:text-[var(--accent)] mb-8 inline-flex items-center gap-1">
           &larr; Back

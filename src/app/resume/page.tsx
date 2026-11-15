@@ -3,7 +3,7 @@ import Button from '@/components/ui/Button';
 
 export default function ResumePage() {
   return (
-    <main className="min-h-screen py-16 px-6 md:px-16 flex flex-col">
+    <main id="main-content" className="min-h-screen py-16 px-6 md:px-16 flex flex-col">
       <div className="max-w-5xl mx-auto w-full">
         <Link href="/" className="text-sm text-[var(--text-muted)] hover:text-[var(--accent)] mb-6 inline-flex items-center gap-1">
           &larr; Back

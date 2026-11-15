@@ -2,6 +2,11 @@ import type { Metadata } from 'next';
 import { Bebas_Neue, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import LenisProvider from '@/components/ui/LenisProvider';
+import Nav from '@/components/ui/Nav';
+import Footer from '@/components/ui/Footer';
+import ContactSection from '@/components/contact/ContactSection';
+import PreLoader from '@/components/preloader/PreLoader';
+import Cursor from '@/components/ui/Cursor';
 
 const bebasNeue = Bebas_Neue({
   weight: '400',
@@ -58,7 +63,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <LenisProvider>{children}</LenisProvider>
+        <LenisProvider>
+          <PreLoader />
+          <Cursor />
+          <Nav />
+          {children}
+          <ContactSection />
+          <Footer />
+        </LenisProvider>
       </body>
     </html>
   );

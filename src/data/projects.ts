@@ -1,26 +1,20 @@
 export const projects = [
   {
     slug: "aether-health", title: "Aether Health", tagline: "AI-powered healthcare platform",
-    description: "AWS AIdeas Hackathon finalist. Features VitalScan, HydroGuard, ClearScript, TrueMeds, LifeLoop. Built for Team Secret Society.",
-    tech: ["AWS Amplify","AWS Lambda","AI/ML"], image: "/images/projects/aether-health.svg",
-    github: null, live: null, featured: true, visible: true,
-  },
-  {
-    slug: "event-management", title: "Event Management System", tagline: "Full-stack event platform",
-    description: "Built with PHP and PostgreSQL.",
-    tech: ["PHP","PostgreSQL"], image: "/images/projects/event-management.svg",
-    github: null, live: null, featured: true, visible: true,
+    description: "An AI-powered health assistant with five modules: VitalScan, ClearScript, TrueMeds, HydroGuard, and LifeLoop. Built by Team Secret Society and named an AWS AIdeas Hackathon finalist.",
+    tech: ["React","AWS Amplify Gen 2","Amazon Bedrock Nova"], image: "/images/projects/aether-health.svg",
+    repository: "Hanu-man12/aether-health", github: "https://github.com/Hanu-man12/aether-health", live: null, featured: true, visible: true,
   },
   {
     slug: "365-wanderlust", title: "365 Wanderlust", tagline: "Travel marketing website",
-    description: "Live travel marketing website. React, Vite, Tailwind CSS, Motion.",
-    tech: ["React","Vite","Tailwind CSS","Motion"], image: "/images/projects/365-wanderlust.svg",
-    github: null, live: "https://365wanderlust.com", featured: true, visible: true,
+    description: "A single-page Rajasthan travel marketing website for destinations and tours. It is a static frontend with no backend, built with React and Vite.",
+    tech: ["React 18","Vite","Tailwind CSS 4","Lucide React"], image: "/images/projects/365-wanderlust.svg",
+    repository: "Hanu-man12/365wanderlust", github: "https://github.com/Hanu-man12/365wanderlust", live: "https://365wanderlust.com", featured: true, visible: true,
   },
   {
-    slug: "fan-squad", title: "Fan Squad", tagline: "Gamified football second-screen app",
-    description: "React Native + TypeScript + Expo. Python WebSocket prototype backend. AWS serverless architecture planned. AWS Innovation Cup finalist.",
-    tech: ["React Native","TypeScript","Expo","Python","AWS"], image: "/images/projects/fan-squad.svg",
-    github: null, live: null, featured: true, visible: true,
+    slug: "event-management", title: "Event Management System", tagline: "College event management platform",
+    description: "A full-stack platform for browsing and registering for college events, managing profiles, and handling events and registrations through admin tools.",
+    tech: ["PHP 8+","PostgreSQL","Bootstrap 5","Cropper.js"], image: "/images/projects/event-management.svg",
+    repository: "Hanu-man12/Event_Management", github: "https://github.com/Hanu-man12/Event_Management", live: "https://events-navy-five.vercel.app", featured: true, visible: true,
   },
 ];

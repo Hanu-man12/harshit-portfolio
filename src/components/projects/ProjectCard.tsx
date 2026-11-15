@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
 
 function GithubIcon({ size = 18 }: { size?: number }) {
@@ -44,6 +45,12 @@ export default function ProjectCard({ project }: { project: Project }) {
           ))}
         </div>
         <div className="flex gap-3">
+          <Link
+            href={`/projects/${project.slug}`}
+            className="text-sm font-medium text-[var(--accent)] hover:underline"
+          >
+            View details <span aria-hidden="true">&rarr;</span>
+          </Link>
           {project.github && (
             <a href={project.github} target="_blank" rel="noopener noreferrer" aria-label={`${project.title} GitHub`} className="text-[var(--text-muted)] hover:text-[var(--accent)]">
               <GithubIcon size={18} />

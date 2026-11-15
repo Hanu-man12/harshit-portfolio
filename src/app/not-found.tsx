@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function NotFound() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+    <main id="main-content" className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
       <h1
         className="text-8xl md:text-[10rem] font-display text-[var(--accent)] mb-6"
         style={{fontFamily: 'var(--font-display)'}}
