@@ -10,7 +10,7 @@ import Button from './Button';
 const NAV_LINKS = [
   { label: 'Home', href: '/' },
   { label: 'Projects', href: '/projects' },
-  { label: 'Certificates', href: '/certificates' },
+  { label: 'Achievements', href: '/certificates' },
   { label: 'Open Source', href: '/open-source' },
 ];
 
