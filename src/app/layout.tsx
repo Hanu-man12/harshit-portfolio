@@ -38,6 +38,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       className={`${bebasNeue.variable} ${inter.variable} ${jetBrainsMono.variable}`}
+      suppressHydrationWarning
     >
       <head>
         <script

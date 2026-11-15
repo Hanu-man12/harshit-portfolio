@@ -5,7 +5,7 @@ export const assets = {
     heroBgMobile: { src: "/images/hero/hero-bg-mobile.jpg", width: 768, height: 900, alt: "Hero background" },
   },
   about: {
-    profile: { src: "/images/about/harshit.jpg", width: 400, height: 500, alt: "Harshit Shaw" },
+    profile: { src: "/images/profile/harshit.jpg", width: 400, height: 500, alt: "Harshit Shaw" },
   },
   projects: {
     aetherHealth: { src: "/images/projects/aether-health.jpg", width: 800, height: 450, alt: "Aether Health project" },
