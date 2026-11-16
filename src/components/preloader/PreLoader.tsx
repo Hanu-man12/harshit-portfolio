@@ -296,8 +296,6 @@ export default function PreLoader() {
       gsap.to(rootRef.current, {
         autoAlpha: 0, duration: 0.8, ease: 'power2.inOut',
         onComplete: () => {
-          // Re-enable scroll that body:overflow:hidden blocked
-          document.body.style.overflow = '';
           setVisible(false);
         },
       });
@@ -346,9 +344,9 @@ export default function PreLoader() {
           {/* HEADING */}
           <div className="pl-top">
             <h1 className="pl-heading" aria-label="Harshit Shaw">
-              <span className="pl-hw">HARSH</span>
-              <span className="pl-hr">IT</span>
-              <span className="pl-hw"> SHAW</span>
+              <span className="pl-hw">HARSHIT</span>
+
+              <span className="pl-hr"> SHAW</span>
             </h1>
             <p className="pl-sub">
               <DecorLine flip />

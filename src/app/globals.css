@@ -327,8 +327,6 @@ body {
   color: var(--text);
   font-family: var(--font-body);
   margin: 0;
-  /* Prevent hero flash before preloader JS hydrates */
-  overflow: hidden;
 }
 
 :focus-visible {
