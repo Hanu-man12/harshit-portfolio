@@ -6,7 +6,6 @@ import Nav from '@/components/ui/Nav';
 import Footer from '@/components/ui/Footer';
 import ContactSection from '@/components/contact/ContactSection';
 import PreLoader from '@/components/preloader/PreLoader';
-import Cursor from '@/components/ui/Cursor';
 
 const bebasNeue = Bebas_Neue({
   weight: '400',
@@ -72,7 +71,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </a>
         <LenisProvider>
           <PreLoader />
-          <Cursor />
           <Nav />
           {children}
           <ContactSection />
