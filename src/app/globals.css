@@ -254,7 +254,8 @@
 /* ── Mobile portrait (≤ 639 px) ── */
 @media (max-width: 639px) {
   .pl-bg-img {
-    object-position: 65% center;
+    /* Astronaut is in the lower-center of the image — keep him centred */
+    object-position: center center;
   }
 
   .pl-heading {
@@ -281,7 +282,7 @@
 /* ── Mobile landscape ── */
 @media (max-width: 767px) and (orientation: landscape) {
   .pl-bg-img {
-    object-position: center 30%;
+    object-position: center center;
   }
 
   .pl-gap {
