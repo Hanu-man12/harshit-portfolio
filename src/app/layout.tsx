@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Bebas_Neue, Inter, JetBrains_Mono } from 'next/font/google';
+import { Bebas_Neue, Inter, JetBrains_Mono, Orbitron } from 'next/font/google';
 import './globals.css';
 import LenisProvider from '@/components/ui/LenisProvider';
 import Nav from '@/components/ui/Nav';
@@ -12,6 +12,13 @@ const bebasNeue = Bebas_Neue({
   weight: '400',
   subsets: ['latin'],
   variable: '--font-display',
+  display: 'swap',
+});
+
+const orbitron = Orbitron({
+  weight: ['700', '800', '900'],
+  subsets: ['latin'],
+  variable: '--font-display-orbitron',
   display: 'swap',
 });
 
@@ -43,7 +50,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       data-scroll-behavior="smooth"
-      className={`${bebasNeue.variable} ${inter.variable} ${jetBrainsMono.variable}`}
+      className={`${bebasNeue.variable} ${orbitron.variable} ${inter.variable} ${jetBrainsMono.variable}`}
       suppressHydrationWarning
     >
       <head>

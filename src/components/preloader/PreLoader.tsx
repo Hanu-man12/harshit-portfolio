@@ -5,80 +5,78 @@ import Image from 'next/image';
 import gsap from 'gsap';
 import { useReducedMotion } from '@/lib/useReducedMotion';
 
-// ─── Segmented HUD Ring ──────────────────────────────────────────────────────
+// ─── Constants ───────────────────────────────────────────────────────────────
 
-const TOTAL_SEGMENTS = 72;
-const GAP_DEG = 2.2;
-const RADIUS = 48; // % of SVG viewBox (100x100)
+const SEGMENTS = 60;
+const GAP_DEG = 3.5;       // gap between each segment
+const RING_R = 42;          // radius in SVG units (viewBox 0 0 100 100)
 const CX = 50;
 const CY = 50;
 
-function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
-  const rad = ((angleDeg - 90) * Math.PI) / 180;
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function polar(cx: number, cy: number, r: number, deg: number) {
+  const rad = ((deg - 90) * Math.PI) / 180;
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-function segmentPath(index: number, total: number, r: number, cx: number, cy: number, gap: number) {
-  const segDeg = 360 / total;
-  const startDeg = index * segDeg + gap / 2;
-  const endDeg = startDeg + segDeg - gap;
-  const start = polarToCartesian(cx, cy, r, startDeg);
-  const end = polarToCartesian(cx, cy, r, endDeg);
-  const largeArc = segDeg - gap > 180 ? 1 : 0;
-  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+function arcPath(i: number) {
+  const segDeg = 360 / SEGMENTS;
+  const start = i * segDeg + GAP_DEG / 2;
+  const end   = start + segDeg - GAP_DEG;
+  const s = polar(CX, CY, RING_R, start);
+  const e = polar(CX, CY, RING_R, end);
+  const large = segDeg - GAP_DEG > 180 ? 1 : 0;
+  return `M ${s.x.toFixed(3)} ${s.y.toFixed(3)} A ${RING_R} ${RING_R} 0 ${large} 1 ${e.x.toFixed(3)} ${e.y.toFixed(3)}`;
 }
 
+// Pre-compute all paths once (never changes)
+const PATHS = Array.from({ length: SEGMENTS }, (_, i) => arcPath(i));
+
+// ─── Segmented HUD Ring ───────────────────────────────────────────────────────
+
 function SegmentedRing({ progress }: { progress: number }) {
-  const lit = Math.round((progress / 100) * TOTAL_SEGMENTS);
+  const lit = Math.round((progress / 100) * SEGMENTS);
+
   return (
     <svg
       viewBox="0 0 100 100"
-      className="absolute inset-0 w-full h-full"
+      width="100%"
+      height="100%"
+      style={{ overflow: 'visible', display: 'block' }}
       aria-hidden="true"
-      style={{ overflow: 'visible' }}
     >
       <defs>
-        <filter id="hud-glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="1.2" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
+        {/* Glow for the last few active segments */}
+        <filter id="pl-glow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="1.4" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
-        <filter id="hud-glow-strong" x="-80%" y="-80%" width="260%" height="260%">
-          <feGaussianBlur stdDeviation="2.4" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
+        <filter id="pl-glow-tip" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="2.5" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
       </defs>
 
-      {/* Dim segments */}
-      {Array.from({ length: TOTAL_SEGMENTS }).map((_, i) => (
-        <path
-          key={`dim-${i}`}
-          d={segmentPath(i, TOTAL_SEGMENTS, RADIUS, CX, CY, GAP_DEG)}
-          stroke={i < lit ? 'transparent' : 'rgba(180,20,40,0.22)'}
-          strokeWidth="2.2"
-          fill="none"
-          strokeLinecap="round"
-        />
-      ))}
+      {PATHS.map((d, i) => {
+        const active  = i < lit;
+        const isTip   = active && i === lit - 1;
+        const isNearTip = active && i >= lit - 4;
 
-      {/* Lit segments */}
-      {Array.from({ length: lit }).map((_, i) => {
-        const isLast = i === lit - 1;
         return (
           <path
-            key={`lit-${i}`}
-            d={segmentPath(i, TOTAL_SEGMENTS, RADIUS, CX, CY, GAP_DEG)}
-            stroke={isLast ? '#ff4060' : '#e63946'}
-            strokeWidth={isLast ? '2.8' : '2.2'}
+            key={i}
+            d={d}
             fill="none"
+            stroke={
+              active
+                ? isTip ? '#ff3350' : '#e63946'
+                : 'rgba(160, 20, 40, 0.28)'
+            }
+            strokeWidth={isTip ? '2.6' : active ? '2.2' : '1.8'}
             strokeLinecap="round"
-            filter={isLast ? 'url(#hud-glow-strong)' : i > lit - 5 ? 'url(#hud-glow)' : undefined}
-            opacity={isLast ? 1 : 0.85 + (i / lit) * 0.15}
+            filter={isTip ? 'url(#pl-glow-tip)' : isNearTip ? 'url(#pl-glow)' : undefined}
+            opacity={active ? 1 : 0.9}
           />
         );
       })}
@@ -86,35 +84,96 @@ function SegmentedRing({ progress }: { progress: number }) {
   );
 }
 
-// ─── Checkmark ───────────────────────────────────────────────────────────────
+// ─── Animated Checkmark ───────────────────────────────────────────────────────
 
-function Checkmark({ visible }: { visible: boolean }) {
-  const pathRef = useRef<SVGPathElement>(null);
+function AnimatedCheckmark() {
+  const circleRef = useRef<SVGCircleElement>(null);
+  const checkRef  = useRef<SVGPathElement>(null);
 
   useEffect(() => {
-    if (!visible || !pathRef.current) return;
-    const len = pathRef.current.getTotalLength();
-    gsap.fromTo(
-      pathRef.current,
-      { strokeDasharray: len, strokeDashoffset: len, opacity: 1 },
-      { strokeDashoffset: 0, duration: 0.5, ease: 'power2.out' },
-    );
-  }, [visible]);
+    const circleLen = 2 * Math.PI * 38;
+    const checkLen  = 55;
 
-  if (!visible) return null;
+    gsap.set(circleRef.current, {
+      strokeDasharray: circleLen,
+      strokeDashoffset: circleLen,
+      opacity: 1,
+    });
+    gsap.set(checkRef.current, {
+      strokeDasharray: checkLen,
+      strokeDashoffset: checkLen,
+      opacity: 1,
+    });
+
+    gsap.timeline()
+      .to(circleRef.current, {
+        strokeDashoffset: 0,
+        duration: 0.55,
+        ease: 'power2.out',
+      })
+      .to(checkRef.current, {
+        strokeDashoffset: 0,
+        duration: 0.4,
+        ease: 'power2.out',
+      }, '-=0.1');
+  }, []);
 
   return (
-    <svg viewBox="0 0 24 24" className="w-8 h-8 drop-shadow-[0_0_10px_#e63946]" fill="none">
-      <path
-        ref={pathRef}
-        d="M4 13l5 5L20 7"
+    <svg
+      viewBox="0 0 100 100"
+      width="100%"
+      height="100%"
+      style={{ overflow: 'visible', display: 'block' }}
+      aria-hidden="true"
+    >
+      <defs>
+        <filter id="ck-glow" x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="3" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      {/* Glowing circle */}
+      <circle
+        ref={circleRef}
+        cx="50" cy="50" r="38"
+        fill="none"
         stroke="#e63946"
-        strokeWidth="2.5"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        filter="url(#ck-glow)"
+        opacity={0}
+      />
+      {/* Checkmark */}
+      <path
+        ref={checkRef}
+        d="M 28 52 L 44 68 L 72 32"
+        fill="none"
+        stroke="#e63946"
+        strokeWidth="4"
         strokeLinecap="round"
         strokeLinejoin="round"
+        filter="url(#ck-glow)"
         opacity={0}
       />
     </svg>
+  );
+}
+
+// ─── Decorative line for subtitle ────────────────────────────────────────────
+
+function DecorLine() {
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        display: 'inline-block',
+        width: 'clamp(24px, 4vw, 48px)',
+        height: '1px',
+        background: 'linear-gradient(90deg, transparent, #e63946 60%, transparent)',
+        verticalAlign: 'middle',
+        opacity: 0.8,
+      }}
+    />
   );
 }
 
@@ -122,39 +181,48 @@ function Checkmark({ visible }: { visible: boolean }) {
 
 export default function PreLoader() {
   const reduced = useReducedMotion();
-  const [visible, setVisible] = useState(true);
-  const [progress, setProgress] = useState(1);
+
+  const [mounted,   setMounted]   = useState(false);
+  const [visible,   setVisible]   = useState(true);
+  const [progress,  setProgress]  = useState(1);
   const [pageReady, setPageReady] = useState(false);
-  const [animDone, setAnimDone] = useState(false);
+  const [animDone,  setAnimDone]  = useState(false);
   const [showReady, setShowReady] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const subtitleRef = useRef<HTMLParagraphElement>(null);
-  const hudRef = useRef<HTMLDivElement>(null);
+  const topRef       = useRef<HTMLDivElement>(null);
+  const hudRef       = useRef<HTMLDivElement>(null);
 
-  // Track page readiness
+  const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressRef  = useRef(1);
+
+  // SSR guard
+  useEffect(() => { setMounted(true); }, []);
+
+  // Page-ready detection
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     if (document.readyState === 'complete') {
       setPageReady(true);
     } else {
-      window.addEventListener('load', () => setPageReady(true), { once: true });
+      const h = () => setPageReady(true);
+      window.addEventListener('load', h, { once: true });
+      return () => window.removeEventListener('load', h);
     }
-    // Safety timeout
-    const t = setTimeout(() => setPageReady(true), 5000);
+  }, []);
+  // Safety timeout
+  useEffect(() => {
+    const t = setTimeout(() => setPageReady(true), 6000);
     return () => clearTimeout(t);
   }, []);
 
-  // Smooth progress: 1→100 in ~3 seconds (30ms per tick)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const progressRef = useRef(1);
-
+  // Progress ticker — 1→100 in ~3s (30ms per step)
   const startProgress = useCallback(() => {
     if (intervalRef.current) return;
     intervalRef.current = setInterval(() => {
       progressRef.current += 1;
 
-      // Hold at 99 until page is ready
+      // Hold at 99 until page is actually ready
       if (progressRef.current >= 99 && !pageReady) {
         progressRef.current = 99;
         setProgress(99);
@@ -174,14 +242,14 @@ export default function PreLoader() {
     }, 30);
   }, [pageReady]);
 
-  // Start progress after initial reveal animation (0.6s delay)
+  // Start ticker after entrance animation settles
   useEffect(() => {
-    if (reduced) { setVisible(false); return; }
-    const t = setTimeout(startProgress, 600);
+    if (!mounted || reduced) return;
+    const t = setTimeout(startProgress, 500);
     return () => clearTimeout(t);
-  }, [reduced, startProgress]);
+  }, [mounted, reduced, startProgress]);
 
-  // Once held at 99 and page becomes ready, resume to 100
+  // Resume from 99 when page becomes ready
   useEffect(() => {
     if (!pageReady || animDone) return;
     if (progressRef.current >= 99 && !intervalRef.current) {
@@ -189,52 +257,53 @@ export default function PreLoader() {
     }
   }, [pageReady, animDone, startProgress]);
 
-  // On animDone: show SYSTEM READY, then exit
+  // Completion sequence
   useEffect(() => {
     if (!animDone) return;
-    const t1 = setTimeout(() => setShowReady(true), 300);
+    // Show checkmark after brief pause
+    const t1 = setTimeout(() => setShowReady(true), 250);
+    // Fade out preloader
     const t2 = setTimeout(() => {
       if (!containerRef.current) { setVisible(false); return; }
       gsap.to(containerRef.current, {
         autoAlpha: 0,
-        duration: 0.7,
+        duration: 0.75,
         ease: 'power2.inOut',
         onComplete: () => setVisible(false),
       });
-    }, 1800);
+    }, 1900);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [animDone]);
 
   // Entrance animation
   useEffect(() => {
-    if (reduced || !visible) return;
+    if (!mounted || reduced) return;
     const ctx = gsap.context(() => {
-      gsap.set([headingRef.current, subtitleRef.current, hudRef.current], {
-        autoAlpha: 0, y: 18,
-      });
+      gsap.set([topRef.current, hudRef.current], { autoAlpha: 0, y: 14 });
       gsap.timeline()
-        .to(headingRef.current, { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 0)
-        .to(subtitleRef.current, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0.25)
-        .to(hudRef.current, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0.4);
+        .to(topRef.current,  { autoAlpha: 1, y: 0, duration: 0.55, ease: 'power2.out' }, 0)
+        .to(hudRef.current,  { autoAlpha: 1, y: 0, duration: 0.5,  ease: 'power2.out' }, 0.2);
     }, containerRef);
     return () => ctx.revert();
-  }, [reduced, visible]);
+  }, [mounted, reduced]);
 
-  if (!visible) return null;
+  // Cleanup interval on unmount
+  useEffect(() => () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  }, []);
 
-  // Reduced motion: instant fade
-  if (reduced) return null;
+  if (!mounted || !visible || reduced) return null;
 
   return (
     <div
       ref={containerRef}
-      className="preloader-root fixed inset-0 z-[9999] overflow-hidden"
+      className="pl-root"
       role="status"
       aria-live="polite"
       aria-label="Loading portfolio"
     >
-      {/* Background image */}
-      <div className="absolute inset-0 z-0">
+      {/* ── Background image ── */}
+      <div className="pl-bg">
         <Image
           src="/images/preloader/harshit-shaw-preloader-bg.png"
           alt=""
@@ -242,160 +311,66 @@ export default function PreLoader() {
           priority
           unoptimized
           draggable={false}
-          className="preloader-bg-img"
+          className="pl-bg-img"
           sizes="100vw"
         />
-        {/* Dark overlay so text is readable */}
-        <div className="absolute inset-0 bg-black/40" />
-        {/* Bottom gradient for text legibility */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
+        {/* Subtle dark overlays for readability */}
+        <div className="pl-overlay-top"    aria-hidden="true" />
+        <div className="pl-overlay-bottom" aria-hidden="true" />
+        <div className="pl-overlay-nebula" aria-hidden="true" />
       </div>
 
-      {/* Subtle red nebula atmosphere */}
-      <div
-        className="absolute inset-0 z-[1] pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse at 65% 42%, rgba(200,20,45,0.13) 0%, transparent 55%), ' +
-            'radial-gradient(ellipse at 30% 60%, rgba(150,10,30,0.10) 0%, transparent 45%)',
-        }}
-      />
+      {/* ── All content, vertically stacked in a column ── */}
+      <div className="pl-content">
 
-      {/* Content */}
-      <div className="absolute inset-0 z-10 flex flex-col items-center justify-between py-10 px-6 md:py-14">
-
-        {/* Top: Heading + Subtitle */}
-        <div className="flex flex-col items-center text-center mt-2 md:mt-4">
-          <h1
-            ref={headingRef}
-            className="preloader-heading font-display leading-none tracking-widest text-white"
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(2.4rem, 7vw, 6.5rem)',
-              textShadow:
-                '0 0 20px rgba(230,57,70,0.6), 0 0 60px rgba(230,57,70,0.25), 0 2px 4px rgba(0,0,0,0.8)',
-              letterSpacing: '0.08em',
-            }}
-          >
-            <span style={{ color: '#f4f1f2' }}>HARSHIT </span>
-            <span style={{ color: '#e63946' }}>SHAW</span>
+        {/* TOP: Heading + Subtitle */}
+        <div ref={topRef} className="pl-top" aria-hidden="false">
+          <h1 className="pl-heading" aria-label="Harshit Shaw">
+            <span className="pl-heading-white">HARSH</span>
+            <span className="pl-heading-red">IT</span>
+            <span className="pl-heading-white"> SHAW</span>
           </h1>
-          <p
-            ref={subtitleRef}
-            className="mt-3 text-[0.65rem] md:text-xs tracking-[0.3em] uppercase"
-            style={{
-              fontFamily: 'var(--font-mono)',
-              color: 'rgba(244,241,242,0.7)',
-              letterSpacing: '0.3em',
-            }}
-          >
-            {showReady ? 'SYSTEM READY' : 'INITIALIZING PORTFOLIO'}
+          <p className="pl-subtitle">
+            <DecorLine />
+            <span className="pl-subtitle-text">INITIALIZING PORTFOLIO</span>
+            <DecorLine />
           </p>
         </div>
 
-        {/* Middle: HUD Ring */}
-        <div
-          ref={hudRef}
-          className="relative flex items-center justify-center preloader-hud"
-          style={{ width: 'clamp(180px, 36vw, 280px)', aspectRatio: '1' }}
-        >
-          {/* Outer glow ring */}
-          <div
-            className="absolute inset-0 rounded-full pointer-events-none"
-            style={{
-              boxShadow: `0 0 ${progress > 50 ? 32 : 16}px rgba(230,57,70,${0.1 + (progress / 100) * 0.25})`,
-              transition: 'box-shadow 0.3s ease',
-            }}
-          />
+        {/* CENTER: HUD Ring with percentage or checkmark inside */}
+        <div ref={hudRef} className="pl-hud-wrap" aria-label={showReady ? 'System ready' : `${progress}% loaded`}>
+          <div className="pl-hud-ring">
+            {/* Ring SVG */}
+            <div className="pl-ring-svg">
+              {showReady
+                ? <AnimatedCheckmark />
+                : <SegmentedRing progress={progress} />
+              }
+            </div>
 
-          {/* Segmented SVG ring */}
-          <div className="absolute inset-0">
-            <SegmentedRing progress={progress} />
-          </div>
+            {/* Centre text — only show when NOT in ready state */}
+            {!showReady && (
+              <div className="pl-hud-center" aria-hidden="true">
+                <span className="pl-pct-num">
+                  {progress}
+                  <span className="pl-pct-sym">%</span>
+                </span>
+              </div>
+            )}
 
-          {/* Centre: percentage or checkmark */}
-          <div className="relative z-10 flex flex-col items-center justify-center">
-            {showReady ? (
-              <Checkmark visible={showReady} />
-            ) : (
-              <span
-                className="tabular-nums leading-none"
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'clamp(1.4rem, 4vw, 2.2rem)',
-                  color: '#f4f1f2',
-                  textShadow: '0 0 12px rgba(230,57,70,0.4)',
-                }}
-                aria-label={`${progress} percent loaded`}
-              >
-                {progress}
-                <span style={{ fontSize: '0.5em', color: 'rgba(244,241,242,0.6)', marginLeft: 1 }}>%</span>
-              </span>
+            {/* SYSTEM READY label below ring */}
+            {showReady && (
+              <div className="pl-ready-label" aria-live="assertive">
+                <p className="pl-ready-text">
+                  <DecorLine />
+                  <span style={{ margin: '0 10px' }}>SYSTEM READY</span>
+                  <DecorLine />
+                </p>
+              </div>
             )}
           </div>
-
-          {/* HUD corner tick marks */}
-          {[0, 90, 180, 270].map((deg) => (
-            <div
-              key={deg}
-              className="absolute pointer-events-none"
-              style={{
-                width: 8,
-                height: 8,
-                top: '50%',
-                left: '50%',
-                transform: `rotate(${deg}deg) translateX(${(parseFloat('clamp(180px,36vw,280px)') / 2) + 10}px) translateY(-50%)`,
-              }}
-            >
-              <div
-                style={{
-                  width: 2,
-                  height: 8,
-                  background: 'rgba(230,57,70,0.6)',
-                  borderRadius: 1,
-                }}
-              />
-            </div>
-          ))}
         </div>
 
-        {/* Bottom: Status bar */}
-        <div className="flex flex-col items-center gap-3 w-full max-w-xs md:max-w-sm">
-          {/* Progress bar */}
-          <div
-            className="w-full h-[2px] rounded-full overflow-hidden"
-            style={{ background: 'rgba(244,241,242,0.15)' }}
-          >
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: `${progress}%`,
-                background: 'linear-gradient(90deg, #fff 0%, #ffb4bc 40%, #e63946 100%)',
-                boxShadow: '0 0 10px rgba(230,57,70,0.6)',
-                transition: 'width 60ms linear',
-              }}
-            />
-          </div>
-
-          {/* Status row */}
-          <div
-            className="flex items-center justify-between w-full"
-            style={{ fontFamily: 'var(--font-mono)' }}
-          >
-            <span
-              className="text-[0.55rem] tracking-[0.2em] uppercase"
-              style={{ color: 'rgba(244,241,242,0.5)' }}
-            >
-              {showReady ? 'RESOURCES READY' : 'LOADING ASSETS'}
-            </span>
-            <span
-              className="text-[0.55rem] tracking-[0.15em]"
-              style={{ color: showReady ? '#e63946' : 'rgba(244,241,242,0.5)' }}
-            >
-              {progress}%
-            </span>
-          </div>
-        </div>
       </div>
     </div>
   );
