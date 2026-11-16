@@ -1,298 +1,402 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Image from 'next/image';
 import gsap from 'gsap';
-import type { Texture } from 'three';
 import { useReducedMotion } from '@/lib/useReducedMotion';
 
-const RedOrbitScene = dynamic(() => import('./RedOrbitScene'), {
-  ssr: false,
-  loading: () => null,
-});
+// ─── Segmented HUD Ring ──────────────────────────────────────────────────────
 
-type AssetState = 'loading' | 'ready' | 'failed';
-type PreloaderStage = 'initializing' | 'ready';
+const TOTAL_SEGMENTS = 72;
+const GAP_DEG = 2.2;
+const RADIUS = 48; // % of SVG viewBox (100x100)
+const CX = 50;
+const CY = 50;
 
-function StaticPlanet() {
+function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
+  const rad = ((angleDeg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function segmentPath(index: number, total: number, r: number, cx: number, cy: number, gap: number) {
+  const segDeg = 360 / total;
+  const startDeg = index * segDeg + gap / 2;
+  const endDeg = startDeg + segDeg - gap;
+  const start = polarToCartesian(cx, cy, r, startDeg);
+  const end = polarToCartesian(cx, cy, r, endDeg);
+  const largeArc = segDeg - gap > 180 ? 1 : 0;
+  return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+}
+
+function SegmentedRing({ progress }: { progress: number }) {
+  const lit = Math.round((progress / 100) * TOTAL_SEGMENTS);
   return (
-    <div className="red-orbit-fallback-planet" aria-hidden="true" />
+    <svg
+      viewBox="0 0 100 100"
+      className="absolute inset-0 w-full h-full"
+      aria-hidden="true"
+      style={{ overflow: 'visible' }}
+    >
+      <defs>
+        <filter id="hud-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.2" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <filter id="hud-glow-strong" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="2.4" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      {/* Dim segments */}
+      {Array.from({ length: TOTAL_SEGMENTS }).map((_, i) => (
+        <path
+          key={`dim-${i}`}
+          d={segmentPath(i, TOTAL_SEGMENTS, RADIUS, CX, CY, GAP_DEG)}
+          stroke={i < lit ? 'transparent' : 'rgba(180,20,40,0.22)'}
+          strokeWidth="2.2"
+          fill="none"
+          strokeLinecap="round"
+        />
+      ))}
+
+      {/* Lit segments */}
+      {Array.from({ length: lit }).map((_, i) => {
+        const isLast = i === lit - 1;
+        return (
+          <path
+            key={`lit-${i}`}
+            d={segmentPath(i, TOTAL_SEGMENTS, RADIUS, CX, CY, GAP_DEG)}
+            stroke={isLast ? '#ff4060' : '#e63946'}
+            strokeWidth={isLast ? '2.8' : '2.2'}
+            fill="none"
+            strokeLinecap="round"
+            filter={isLast ? 'url(#hud-glow-strong)' : i > lit - 5 ? 'url(#hud-glow)' : undefined}
+            opacity={isLast ? 1 : 0.85 + (i / lit) * 0.15}
+          />
+        );
+      })}
+    </svg>
   );
 }
 
-export default function PreLoader() {
-  const [visible, setVisible] = useState(true);
-  const [texture, setTexture] = useState<Texture | null>(null);
-  const [assetState, setAssetState] = useState<AssetState>('loading');
-  const [textureProgress, setTextureProgress] = useState(0);
-  const [backgroundState, setBackgroundState] = useState<AssetState>('loading');
-  const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
-  const [mobile, setMobile] = useState(false);
-  const [pageReady, setPageReady] = useState(false);
-  const [sceneReady, setSceneReady] = useState(false);
-  const [loadTimedOut, setLoadTimedOut] = useState(false);
-  const [introReady, setIntroReady] = useState(false);
-  const [stage, setStage] = useState<PreloaderStage>('initializing');
-  const [readyStageComplete, setReadyStageComplete] = useState(false);
-  const startedAtRef = useRef(0);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<HTMLDivElement>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const statusRef = useRef<HTMLParagraphElement>(null);
-  const indicatorRef = useRef<HTMLSpanElement>(null);
-  const sweepRef = useRef<HTMLDivElement>(null);
-  const reduced = useReducedMotion();
+// ─── Checkmark ───────────────────────────────────────────────────────────────
 
-  const onSceneReady = useCallback(() => setSceneReady(true), []);
-  const sceneSettled = sceneReady || loadTimedOut;
-  const resourcesReady = backgroundState !== 'loading'
-    && assetState !== 'loading'
-    && sceneSettled
-    && pageReady;
-  const progress = resourcesReady && stage === 'ready'
-    ? 100
-    : Math.max(1, Math.min(99, Math.floor(
-      (backgroundState === 'loading' ? 0 : 20)
-      + (assetState === 'loading' ? textureProgress * 0.55 : 55)
-      + (sceneSettled ? 15 : 0)
-      + (pageReady ? 10 : 0),
-    )));
+function Checkmark({ visible }: { visible: boolean }) {
+  const pathRef = useRef<SVGPathElement>(null);
 
   useEffect(() => {
-    if (reduced || !visible) {
-      setVisible(false);
-      return;
-    }
+    if (!visible || !pathRef.current) return;
+    const len = pathRef.current.getTotalLength();
+    gsap.fromTo(
+      pathRef.current,
+      { strokeDasharray: len, strokeDashoffset: len, opacity: 1 },
+      { strokeDashoffset: 0, duration: 0.5, ease: 'power2.out' },
+    );
+  }, [visible]);
 
-    if (startedAtRef.current === 0) startedAtRef.current = Date.now();
-
-    const canvas = document.createElement('canvas');
-    let context: WebGLRenderingContext | WebGL2RenderingContext | null = null;
-    try {
-      context = canvas.getContext('webgl2') || canvas.getContext('webgl');
-    } catch {
-      context = null;
-    }
-    const supported = Boolean(context);
-    setWebglSupported(supported);
-    context?.getExtension('WEBGL_lose_context')?.loseContext();
-    if (!supported) {
-      setAssetState('failed');
-      setSceneReady(true);
-    }
-
-    const media = window.matchMedia('(max-width: 767px)');
-    const updateMobile = () => setMobile(media.matches);
-    updateMobile();
-    media.addEventListener('change', updateMobile);
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const markPageReady = () => setPageReady(true);
-    if (document.readyState === 'complete') markPageReady();
-    else window.addEventListener('load', markPageReady, { once: true });
-
-    const fallbackTimer = window.setTimeout(() => {
-      setBackgroundState((current) => current === 'loading' ? 'failed' : current);
-      setAssetState((current) => current === 'loading' ? 'failed' : current);
-      setLoadTimedOut(true);
-      setPageReady(true);
-    }, 8000);
-
-    return () => {
-      window.clearTimeout(fallbackTimer);
-      window.removeEventListener('load', markPageReady);
-      media.removeEventListener('change', updateMobile);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [reduced, visible]);
-
-  useEffect(() => {
-    if (!visible || reduced || webglSupported === null) return;
-    if (!webglSupported) {
-      setAssetState('failed');
-      return;
-    }
-
-    let cancelled = false;
-    let loadedTexture: Texture | null = null;
-    import('three').then(({ TextureLoader, SRGBColorSpace }) => {
-      if (cancelled) return;
-      new TextureLoader().load(
-        '/images/preloader/mars-2k.jpg',
-        (loaded) => {
-          loaded.colorSpace = SRGBColorSpace;
-          loadedTexture = loaded;
-          if (cancelled) {
-            loaded.dispose();
-            return;
-          }
-          setTexture(loaded);
-          setTextureProgress(100);
-          setAssetState('ready');
-        },
-        (event) => {
-          if (!cancelled && event.total > 0) {
-            setTextureProgress(Math.min(99, Math.round((event.loaded / event.total) * 100)));
-          }
-        },
-        () => {
-          if (!cancelled) {
-            setTextureProgress(100);
-            setAssetState('failed');
-          }
-        },
-      );
-    }).catch(() => {
-      if (!cancelled) {
-        setTextureProgress(100);
-        setAssetState('failed');
-      }
-    });
-
-    return () => {
-      cancelled = true;
-      loadedTexture?.dispose();
-    };
-  }, [visible, reduced, webglSupported]);
-
-  useEffect(() => {
-    if (!visible || reduced) return;
-    const context = gsap.context(() => {
-      gsap.set(sceneRef.current, { autoAlpha: 0, scale: 0.9 });
-      gsap.set(titleRef.current?.querySelectorAll('[data-name-letter]') ?? [], { autoAlpha: 0, y: 22 });
-      gsap.set(statusRef.current, { autoAlpha: 0, y: 8 });
-      gsap.set(indicatorRef.current, { autoAlpha: 0 });
-
-      gsap.timeline({ onComplete: () => setIntroReady(true) })
-        .to(sceneRef.current, { autoAlpha: 1, scale: 1, duration: 1.3, ease: 'power2.out' }, 0.08)
-        .to(titleRef.current?.querySelectorAll('[data-name-letter]') ?? [], {
-          autoAlpha: 1,
-          y: 0,
-          duration: 0.45,
-          stagger: 0.055,
-          ease: 'power2.out',
-        }, 0.55)
-        .to(statusRef.current, { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power2.out' }, 1.35)
-        .to(indicatorRef.current, { autoAlpha: 1, duration: 0.45, ease: 'power2.out' }, 1.5)
-        .to({}, { duration: 0.45 }, 2.5);
-    }, containerRef);
-    return () => context.revert();
-  }, [visible, reduced]);
-
-  useEffect(() => {
-    if (!visible || reduced || !introReady || !resourcesReady || stage !== 'ready' || !readyStageComplete) return;
-    const context = gsap.context(() => {
-      gsap.timeline({ onComplete: () => setVisible(false) })
-        .to(sweepRef.current, { xPercent: 150, opacity: 0.7, duration: 0.48, ease: 'power2.inOut' })
-        .to(containerRef.current, { autoAlpha: 0, duration: 0.58, ease: 'power2.inOut' }, 0.22);
-    }, containerRef);
-    return () => context.revert();
-  }, [visible, reduced, introReady, resourcesReady, stage, readyStageComplete]);
-
-  useEffect(() => {
-    if (!visible || reduced || !resourcesReady || stage !== 'initializing') return;
-    const elapsed = startedAtRef.current === 0 ? 0 : Date.now() - startedAtRef.current;
-    const remaining = Math.max(0, 1500 - elapsed);
-    const timer = window.setTimeout(() => setStage('ready'), remaining);
-    return () => window.clearTimeout(timer);
-  }, [visible, reduced, resourcesReady, stage]);
-
-  useEffect(() => {
-    if (!visible || reduced || stage !== 'ready') return;
-    const timer = window.setTimeout(() => setReadyStageComplete(true), 1700);
-    return () => window.clearTimeout(timer);
-  }, [visible, reduced, stage]);
-
-  if (!visible || reduced) return null;
-
-  const displayName = 'HARSHIT SHAW';
-  const usingFallback = backgroundState === 'failed' || assetState === 'failed' || !webglSupported || loadTimedOut;
-  const status = stage === 'ready'
-    ? (usingFallback ? 'SYSTEM READY · FALLBACK MODE' : 'SYSTEM READY')
-    : 'INITIALIZING PORTFOLIO...';
+  if (!visible) return null;
 
   return (
-    <div ref={containerRef} className="red-orbit-preloader fixed inset-0 z-[9999] isolate overflow-hidden" role="status" aria-live="polite" aria-label="Loading portfolio">
-      <div className="red-orbit-landscape absolute inset-0" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="w-8 h-8 drop-shadow-[0_0_10px_#e63946]" fill="none">
+      <path
+        ref={pathRef}
+        d="M4 13l5 5L20 7"
+        stroke="#e63946"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0}
+      />
+    </svg>
+  );
+}
+
+// ─── Main PreLoader ───────────────────────────────────────────────────────────
+
+export default function PreLoader() {
+  const reduced = useReducedMotion();
+  const [visible, setVisible] = useState(true);
+  const [progress, setProgress] = useState(1);
+  const [pageReady, setPageReady] = useState(false);
+  const [animDone, setAnimDone] = useState(false);
+  const [showReady, setShowReady] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const subtitleRef = useRef<HTMLParagraphElement>(null);
+  const hudRef = useRef<HTMLDivElement>(null);
+
+  // Track page readiness
+  useEffect(() => {
+    if (document.readyState === 'complete') {
+      setPageReady(true);
+    } else {
+      window.addEventListener('load', () => setPageReady(true), { once: true });
+    }
+    // Safety timeout
+    const t = setTimeout(() => setPageReady(true), 5000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Smooth progress: 1→100 in ~3 seconds (30ms per tick)
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressRef = useRef(1);
+
+  const startProgress = useCallback(() => {
+    if (intervalRef.current) return;
+    intervalRef.current = setInterval(() => {
+      progressRef.current += 1;
+
+      // Hold at 99 until page is ready
+      if (progressRef.current >= 99 && !pageReady) {
+        progressRef.current = 99;
+        setProgress(99);
+        return;
+      }
+
+      if (progressRef.current >= 100) {
+        progressRef.current = 100;
+        setProgress(100);
+        clearInterval(intervalRef.current!);
+        intervalRef.current = null;
+        setAnimDone(true);
+        return;
+      }
+
+      setProgress(progressRef.current);
+    }, 30);
+  }, [pageReady]);
+
+  // Start progress after initial reveal animation (0.6s delay)
+  useEffect(() => {
+    if (reduced) { setVisible(false); return; }
+    const t = setTimeout(startProgress, 600);
+    return () => clearTimeout(t);
+  }, [reduced, startProgress]);
+
+  // Once held at 99 and page becomes ready, resume to 100
+  useEffect(() => {
+    if (!pageReady || animDone) return;
+    if (progressRef.current >= 99 && !intervalRef.current) {
+      startProgress();
+    }
+  }, [pageReady, animDone, startProgress]);
+
+  // On animDone: show SYSTEM READY, then exit
+  useEffect(() => {
+    if (!animDone) return;
+    const t1 = setTimeout(() => setShowReady(true), 300);
+    const t2 = setTimeout(() => {
+      if (!containerRef.current) { setVisible(false); return; }
+      gsap.to(containerRef.current, {
+        autoAlpha: 0,
+        duration: 0.7,
+        ease: 'power2.inOut',
+        onComplete: () => setVisible(false),
+      });
+    }, 1800);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [animDone]);
+
+  // Entrance animation
+  useEffect(() => {
+    if (reduced || !visible) return;
+    const ctx = gsap.context(() => {
+      gsap.set([headingRef.current, subtitleRef.current, hudRef.current], {
+        autoAlpha: 0, y: 18,
+      });
+      gsap.timeline()
+        .to(headingRef.current, { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 0)
+        .to(subtitleRef.current, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0.25)
+        .to(hudRef.current, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0.4);
+    }, containerRef);
+    return () => ctx.revert();
+  }, [reduced, visible]);
+
+  if (!visible) return null;
+
+  // Reduced motion: instant fade
+  if (reduced) return null;
+
+  return (
+    <div
+      ref={containerRef}
+      className="preloader-root fixed inset-0 z-[9999] overflow-hidden"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading portfolio"
+    >
+      {/* Background image */}
+      <div className="absolute inset-0 z-0">
         <Image
-          src="/images/preloader/red-orbit-scene.png"
+          src="/images/preloader/harshit-shaw-preloader-bg.png"
           alt=""
           fill
-          sizes="100vw"
+          priority
           unoptimized
           draggable={false}
-          onLoad={() => setBackgroundState('ready')}
-          onError={() => setBackgroundState('failed')}
+          className="preloader-bg-img"
+          sizes="100vw"
         />
-      </div>
-      <div className="red-orbit-nebula" aria-hidden="true" />
-      <div className="red-orbit-shade absolute inset-0" aria-hidden="true" />
-      <div ref={sceneRef} className="red-orbit-scene absolute inset-0" aria-hidden="true">
-        {!webglSupported || !sceneReady ? <StaticPlanet /> : null}
-        {webglSupported && (
-          <RedOrbitScene
-            texture={assetState === 'ready' ? texture : null}
-            mobile={mobile}
-            onReady={onSceneReady}
-          />
-        )}
+        {/* Dark overlay so text is readable */}
+        <div className="absolute inset-0 bg-black/40" />
+        {/* Bottom gradient for text legibility */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
       </div>
 
-      <div className="red-orbit-copy absolute inset-0 z-10 flex items-center">
-        <div className="mx-auto w-full max-w-7xl px-6 text-center md:pl-[8vw] md:text-left">
-          <h1 ref={titleRef} aria-label={displayName} className="red-orbit-title whitespace-nowrap font-display leading-[0.9]" style={{fontFamily: 'var(--font-display)'}}>
-            {'HARSHIT'.split('').map((letter, index) => (
-              <span data-name-letter key={`harshit-${index}`} className="inline-block text-[var(--loader-text)]">{letter}</span>
-            ))}
-            <span className="inline-block w-[0.2em]" aria-hidden="true"> </span>
-            {'SHAW'.split('').map((letter, index) => (
-              <span data-name-letter key={`shaw-${index}`} className="inline-block text-[var(--accent)]">{letter}</span>
-            ))}
+      {/* Subtle red nebula atmosphere */}
+      <div
+        className="absolute inset-0 z-[1] pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse at 65% 42%, rgba(200,20,45,0.13) 0%, transparent 55%), ' +
+            'radial-gradient(ellipse at 30% 60%, rgba(150,10,30,0.10) 0%, transparent 45%)',
+        }}
+      />
+
+      {/* Content */}
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-between py-10 px-6 md:py-14">
+
+        {/* Top: Heading + Subtitle */}
+        <div className="flex flex-col items-center text-center mt-2 md:mt-4">
+          <h1
+            ref={headingRef}
+            className="preloader-heading font-display leading-none tracking-widest text-white"
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(2.4rem, 7vw, 6.5rem)',
+              textShadow:
+                '0 0 20px rgba(230,57,70,0.6), 0 0 60px rgba(230,57,70,0.25), 0 2px 4px rgba(0,0,0,0.8)',
+              letterSpacing: '0.08em',
+            }}
+          >
+            <span style={{ color: '#f4f1f2' }}>HARSHIT </span>
+            <span style={{ color: '#e63946' }}>SHAW</span>
           </h1>
-          <p ref={statusRef} className="red-orbit-status mt-5 flex items-center justify-center gap-3 text-[0.65rem] tracking-[0.25em] text-[var(--loader-muted)] md:justify-start md:text-xs" style={{fontFamily: 'var(--font-mono)'}}>
-            <span className={`red-orbit-status-dot ${stage === 'ready' ? 'is-ready' : ''}`} aria-hidden="true" />
-            {status}
+          <p
+            ref={subtitleRef}
+            className="mt-3 text-[0.65rem] md:text-xs tracking-[0.3em] uppercase"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              color: 'rgba(244,241,242,0.7)',
+              letterSpacing: '0.3em',
+            }}
+          >
+            {showReady ? 'SYSTEM READY' : 'INITIALIZING PORTFOLIO'}
           </p>
-          <div className="red-orbit-loader-group mt-5">
-            <div
-              className="red-orbit-primary-track"
-              role="progressbar"
-              aria-label="Portfolio resources loaded"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={progress}
-            >
-              <span ref={indicatorRef} className="red-orbit-progress block h-full" style={{width: `${progress}%`}} />
-            </div>
-            <div className="red-orbit-secondary-row">
-              <span className="red-orbit-secondary-label" style={{fontFamily: 'var(--font-mono)'}}>
-                {stage === 'ready' ? 'RESOURCES READY' : 'LOADING ASSETS'}
+        </div>
+
+        {/* Middle: HUD Ring */}
+        <div
+          ref={hudRef}
+          className="relative flex items-center justify-center preloader-hud"
+          style={{ width: 'clamp(180px, 36vw, 280px)', aspectRatio: '1' }}
+        >
+          {/* Outer glow ring */}
+          <div
+            className="absolute inset-0 rounded-full pointer-events-none"
+            style={{
+              boxShadow: `0 0 ${progress > 50 ? 32 : 16}px rgba(230,57,70,${0.1 + (progress / 100) * 0.25})`,
+              transition: 'box-shadow 0.3s ease',
+            }}
+          />
+
+          {/* Segmented SVG ring */}
+          <div className="absolute inset-0">
+            <SegmentedRing progress={progress} />
+          </div>
+
+          {/* Centre: percentage or checkmark */}
+          <div className="relative z-10 flex flex-col items-center justify-center">
+            {showReady ? (
+              <Checkmark visible={showReady} />
+            ) : (
+              <span
+                className="tabular-nums leading-none"
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 'clamp(1.4rem, 4vw, 2.2rem)',
+                  color: '#f4f1f2',
+                  textShadow: '0 0 12px rgba(230,57,70,0.4)',
+                }}
+                aria-label={`${progress} percent loaded`}
+              >
+                {progress}
+                <span style={{ fontSize: '0.5em', color: 'rgba(244,241,242,0.6)', marginLeft: 1 }}>%</span>
               </span>
-              <div className="red-orbit-percent-loader" aria-hidden="true">
-                <svg viewBox="0 0 44 44" className="absolute inset-0 h-full w-full -rotate-90">
-                  <circle className="red-orbit-percent-track" cx="22" cy="22" r="18" fill="none" strokeWidth="2" />
-                  <circle
-                    className="red-orbit-percent-value"
-                    cx="22"
-                    cy="22"
-                    r="18"
-                    fill="none"
-                    strokeWidth="2.5"
-                    strokeDasharray={2 * Math.PI * 18}
-                    strokeDashoffset={2 * Math.PI * 18 * (1 - progress / 100)}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <span className="red-orbit-percent" style={{fontFamily: 'var(--font-mono)'}}>{progress}%</span>
-              </div>
+            )}
+          </div>
+
+          {/* HUD corner tick marks */}
+          {[0, 90, 180, 270].map((deg) => (
+            <div
+              key={deg}
+              className="absolute pointer-events-none"
+              style={{
+                width: 8,
+                height: 8,
+                top: '50%',
+                left: '50%',
+                transform: `rotate(${deg}deg) translateX(${(parseFloat('clamp(180px,36vw,280px)') / 2) + 10}px) translateY(-50%)`,
+              }}
+            >
+              <div
+                style={{
+                  width: 2,
+                  height: 8,
+                  background: 'rgba(230,57,70,0.6)',
+                  borderRadius: 1,
+                }}
+              />
             </div>
+          ))}
+        </div>
+
+        {/* Bottom: Status bar */}
+        <div className="flex flex-col items-center gap-3 w-full max-w-xs md:max-w-sm">
+          {/* Progress bar */}
+          <div
+            className="w-full h-[2px] rounded-full overflow-hidden"
+            style={{ background: 'rgba(244,241,242,0.15)' }}
+          >
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${progress}%`,
+                background: 'linear-gradient(90deg, #fff 0%, #ffb4bc 40%, #e63946 100%)',
+                boxShadow: '0 0 10px rgba(230,57,70,0.6)',
+                transition: 'width 60ms linear',
+              }}
+            />
+          </div>
+
+          {/* Status row */}
+          <div
+            className="flex items-center justify-between w-full"
+            style={{ fontFamily: 'var(--font-mono)' }}
+          >
+            <span
+              className="text-[0.55rem] tracking-[0.2em] uppercase"
+              style={{ color: 'rgba(244,241,242,0.5)' }}
+            >
+              {showReady ? 'RESOURCES READY' : 'LOADING ASSETS'}
+            </span>
+            <span
+              className="text-[0.55rem] tracking-[0.15em]"
+              style={{ color: showReady ? '#e63946' : 'rgba(244,241,242,0.5)' }}
+            >
+              {progress}%
+            </span>
           </div>
         </div>
       </div>
-      <div ref={sweepRef} className="red-orbit-light-sweep pointer-events-none absolute inset-y-0 left-[-45%] z-20 w-[35%]" aria-hidden="true" />
     </div>
   );
 }
