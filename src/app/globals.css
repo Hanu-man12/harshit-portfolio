@@ -33,81 +33,81 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   PRELOADER
+   PRELOADER  — full polish
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Root */
+/* ── Root overlay ── */
 .pl-root {
   position: fixed;
   inset: 0;
   z-index: 9999;
   overflow: hidden;
-  background: #04040a;
-  display: flex;
-  flex-direction: column;
+  background: #03030a;
 }
 
-/* ── Background ── */
+/* ── Background layer ── */
 .pl-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
 }
 
+/* Desktop: astronaut sits slightly right-of-center in the image */
 .pl-bg-img {
   object-fit: cover;
   object-position: center center;
 }
 
-/* Top vignette — darkens sky so white heading pops */
-.pl-overlay-top {
+/* Vignettes ── */
+.pl-ov-top {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to bottom,
-    rgba(4, 4, 10, 0.70) 0%,
-    rgba(4, 4, 10, 0.30) 35%,
-    rgba(4, 4, 10, 0.05) 60%,
-    rgba(4, 4, 10, 0.00) 100%
+    rgba(3,3,10,0.76) 0%,
+    rgba(3,3,10,0.38) 28%,
+    rgba(3,3,10,0.08) 55%,
+    transparent       100%
   );
 }
-
-/* Bottom vignette — keeps lower content readable */
-.pl-overlay-bottom {
+.pl-ov-bottom {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to top,
-    rgba(4, 4, 10, 0.60) 0%,
-    rgba(4, 4, 10, 0.20) 30%,
-    transparent 60%
+    rgba(3,3,10,0.72) 0%,
+    rgba(3,3,10,0.22) 28%,
+    transparent       55%
   );
 }
-
-/* Subtle red nebula atmosphere */
-.pl-overlay-nebula {
+.pl-ov-nebula {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at 65% 38%, rgba(200, 20, 45, 0.14) 0%, transparent 50%),
-    radial-gradient(ellipse at 20% 55%, rgba(140, 10, 28, 0.10) 0%, transparent 42%);
+    radial-gradient(ellipse at 62% 36%, rgba(210,22,48,0.15) 0%, transparent 46%),
+    radial-gradient(ellipse at 25% 58%, rgba(140,10,28,0.10) 0%, transparent 40%);
 }
 
-/* ── Content column ── */
-.pl-content {
+/* ── Layout container ──
+   Flexbox column centred horizontally.
+   Heading sits near the top-third; ring fills the remainder.
+── */
+.pl-layout {
   position: relative;
   z-index: 10;
   width: 100%;
-  height: 100%;
+  height: 100dvh;          /* use dvh to handle mobile chrome bars */
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Heading in top ~25%, ring centered in remaining space */
-  padding-top: clamp(28px, 5vh, 56px);
+  /* Push heading to roughly top 20–25% */
+  padding-top: clamp(32px, 6vh, 72px);
+  padding-bottom: clamp(24px, 4vh, 48px);
+  box-sizing: border-box;
 }
 
-/* ── Top: Heading + Subtitle ── */
+/* ── Heading block ── */
 .pl-top {
   display: flex;
   flex-direction: column;
@@ -120,75 +120,72 @@
   margin: 0;
   padding: 0;
   line-height: 1;
-  letter-spacing: 0.06em;
-  /* Orbitron-style fallback chain — Orbitron loads via layout.tsx */
-  font-family: var(--font-display-orbitron, 'Orbitron', 'Bebas Neue', 'Arial Black', sans-serif);
+  letter-spacing: 0.055em;
+  font-family: var(--font-display-orbitron, 'Orbitron', 'Arial Black', sans-serif);
   font-weight: 800;
-  font-size: clamp(2rem, 6.5vw, 5.8rem);
-  text-transform: uppercase;
-}
-
-.pl-heading-white {
-  color: #ffffff;
-  text-shadow:
-    0 0 18px rgba(255, 255, 255, 0.35),
-    0 0 50px rgba(230, 57, 70, 0.20),
-    0 2px 6px rgba(0, 0, 0, 0.9);
-}
-
-.pl-heading-red {
-  color: #e63946;
-  text-shadow:
-    0 0 16px rgba(230, 57, 70, 0.75),
-    0 0 40px rgba(230, 57, 70, 0.40),
-    0 2px 6px rgba(0, 0, 0, 0.9);
-}
-
-/* Subtitle */
-.pl-subtitle {
-  margin: clamp(8px, 1.4vh, 14px) 0 0;
-  display: flex;
-  align-items: center;
-  gap: clamp(8px, 1.5vw, 18px);
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-}
-
-.pl-subtitle-text {
-  font-size: clamp(0.52rem, 1.3vw, 0.78rem);
-  letter-spacing: 0.28em;
-  color: rgba(244, 241, 242, 0.72);
+  font-size: clamp(1.9rem, 5.8vw, 5.2rem);
   text-transform: uppercase;
   white-space: nowrap;
 }
 
-/* ── HUD Ring wrapper ── */
-.pl-hud-wrap {
-  /* Take remaining vertical space and center the ring */
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
+.pl-hw {    /* white letters */
+  color: #ffffff;
+  text-shadow:
+    0 0 20px rgba(255,255,255,0.30),
+    0 0 55px rgba(230,57,70,0.18),
+    0 2px 8px rgba(0,0,0,0.95);
 }
 
-.pl-hud-ring {
-  position: relative;
+.pl-hr {    /* crimson "IT" */
+  color: #e63946;
+  text-shadow:
+    0 0 18px rgba(230,57,70,0.80),
+    0 0 45px rgba(230,57,70,0.40),
+    0 2px 8px rgba(0,0,0,0.95);
+}
+
+/* Subtitle */
+.pl-sub {
+  margin: clamp(7px, 1.2vh, 13px) 0 0;
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.4vw, 16px);
+  font-family: var(--font-mono, monospace);
+  white-space: nowrap;
+}
+.pl-sub-text {
+  font-size: clamp(0.50rem, 1.1vw, 0.72rem);
+  letter-spacing: 0.30em;
+  color: rgba(244,241,242,0.70);
+  text-transform: uppercase;
+}
+
+/* ── Explicit gap between heading and ring ── */
+.pl-gap {
+  flex-shrink: 0;
+  height: clamp(24px, 4.5vh, 56px);
+}
+
+/* ── HUD block ── */
+.pl-hud {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Ring size: large enough to surround the astronaut figure */
-  width: clamp(200px, 38vw, 320px);
+  position: relative;
+  /* Medium ring size — not too large */
+  width: clamp(160px, 28vw, 240px);
 }
 
-/* SVG ring container — square aspect ratio */
-.pl-ring-svg {
-  position: relative;
+/* Square SVG wrapper */
+.pl-ring {
   width: 100%;
   aspect-ratio: 1;
+  position: relative;
 }
 
-/* Percentage centred inside the ring */
-.pl-hud-center {
+/* Percentage centred in ring */
+.pl-pct-wrap {
   position: absolute;
   inset: 0;
   display: flex;
@@ -197,80 +194,118 @@
   pointer-events: none;
 }
 
-.pl-pct-num {
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: clamp(1.6rem, 4.5vw, 2.8rem);
+.pl-pct {
+  font-family: var(--font-mono, monospace);
+  font-size: clamp(1.4rem, 3.8vw, 2.4rem);
   font-weight: 500;
-  color: #f4f1f2;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  text-shadow: 0 0 14px rgba(230, 57, 70, 0.5), 0 2px 4px rgba(0, 0, 0, 0.8);
   font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: #f4f1f2;
+  text-shadow: 0 0 16px rgba(230,57,70,0.55), 0 2px 4px rgba(0,0,0,0.90);
+  letter-spacing: -0.01em;
 }
 
-.pl-pct-sym {
-  font-size: 0.48em;
-  color: rgba(244, 241, 242, 0.65);
-  margin-left: 2px;
+.pl-pct-unit {
+  font-size: 0.46em;
+  color: rgba(244,241,242,0.60);
+  margin-left: 1px;
   vertical-align: super;
 }
 
-/* SYSTEM READY label below ring */
-.pl-ready-label {
-  margin-top: clamp(10px, 2vh, 18px);
+/* SYSTEM READY row */
+.pl-ready {
+  margin-top: clamp(10px, 1.8vh, 18px);
   display: flex;
-  justify-content: center;
+  align-items: center;
+  gap: clamp(8px, 1.4vw, 14px);
+  white-space: nowrap;
 }
 
 .pl-ready-text {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: clamp(8px, 1.5vw, 16px);
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: clamp(0.52rem, 1.3vw, 0.76rem);
+  /* Same Orbitron font as heading — consistent identity */
+  font-family: var(--font-display-orbitron, 'Orbitron', 'Arial Black', sans-serif);
+  font-weight: 700;
+  font-size: clamp(0.62rem, 1.6vw, 1.1rem);
   letter-spacing: 0.28em;
-  color: rgba(244, 241, 242, 0.80);
   text-transform: uppercase;
+  color: rgba(244,241,242,0.88);
+  text-shadow:
+    0 0 14px rgba(230,57,70,0.60),
+    0 0 30px rgba(230,57,70,0.28);
 }
 
-/* ── Mobile adjustments ── */
+/* ══════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════ */
+
+/* ── Tablet (640–1023 px) ── */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .pl-hud {
+    width: clamp(180px, 32vw, 260px);
+  }
+}
+
+/* ── Mobile portrait  (≤ 639 px, covers 320/360/375/390/430 px) ──
+   The astronaut in the BG is positioned centre-right; shifting
+   object-position to ~65% keeps them visible without cropping.
+── */
 @media (max-width: 639px) {
   .pl-bg-img {
-    /* Shift right so astronaut + planet stay visible */
-    object-position: 62% center;
+    object-position: 65% center;
+  }
+
+  .pl-layout {
+    padding-top: clamp(28px, 7vh, 52px);
   }
 
   .pl-heading {
-    font-size: clamp(1.7rem, 9vw, 2.8rem);
-    letter-spacing: 0.04em;
+    font-size: clamp(1.55rem, 8.5vw, 2.5rem);
+    letter-spacing: 0.03em;
+    white-space: normal;        /* allow wrap on very narrow screens */
+    word-break: keep-all;
   }
 
-  .pl-hud-ring {
-    width: clamp(170px, 72vw, 240px);
+  .pl-gap {
+    height: clamp(18px, 3.5vh, 36px);
+  }
+
+  .pl-hud {
+    /* Wider on mobile so ring is readable, but won't overflow 320 px */
+    width: min(200px, 62vw);
+  }
+
+  .pl-ready-text {
+    font-size: clamp(0.55rem, 3.2vw, 0.82rem);
+    letter-spacing: 0.20em;
   }
 }
 
-/* Mobile landscape */
+/* ── Mobile landscape ── */
 @media (max-width: 767px) and (orientation: landscape) {
   .pl-bg-img {
-    object-position: center 25%;
+    object-position: center 30%;
   }
 
-  .pl-content {
-    padding-top: clamp(16px, 3vh, 28px);
+  .pl-layout {
+    padding-top: clamp(14px, 2.5vh, 24px);
   }
 
-  .pl-hud-ring {
-    width: clamp(130px, 38vh, 200px);
+  .pl-gap {
+    height: clamp(10px, 2vh, 20px);
+  }
+
+  .pl-hud {
+    width: clamp(120px, 32vh, 180px);
+  }
+
+  .pl-heading {
+    font-size: clamp(1.3rem, 5.5vw, 2rem);
   }
 }
 
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .pl-root {
-    display: none;
-  }
+  .pl-root { display: none; }
 }
 
 @theme {
