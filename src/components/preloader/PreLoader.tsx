@@ -223,22 +223,29 @@ export default function PreLoader() {
   const [animDone,  setAnimDone]  = useState(false);
   const [showReady, setShowReady] = useState(false);
 
-  const rootRef     = useRef<HTMLDivElement>(null);
-  const groupRef    = useRef<HTMLDivElement>(null);  // heading + gap + hud as one group
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const progressRef = useRef(1);
-  const startedRef  = useRef(false);
+  const rootRef      = useRef<HTMLDivElement>(null);
+  const groupRef     = useRef<HTMLDivElement>(null);
+  const intervalRef  = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressRef  = useRef(1);
+  const startedRef   = useRef(false);
+  const pageReadyRef = useRef(false); // ref so interval closure always sees fresh value
 
   // ── Page-ready detection ──
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (document.readyState === 'complete') { setPageReady(true); return; }
-    const h = () => setPageReady(true);
-    window.addEventListener('load', h, { once: true });
-    return () => window.removeEventListener('load', h);
+    const markReady = () => {
+      pageReadyRef.current = true;
+      setPageReady(true);
+    };
+    if (document.readyState === 'complete') { markReady(); return; }
+    window.addEventListener('load', markReady, { once: true });
+    return () => window.removeEventListener('load', markReady);
   }, []);
   useEffect(() => {
-    const t = setTimeout(() => setPageReady(true), 6000);
+    const t = setTimeout(() => {
+      pageReadyRef.current = true;
+      setPageReady(true);
+    }, 6000);
     return () => clearTimeout(t);
   }, []);
 
@@ -248,7 +255,9 @@ export default function PreLoader() {
     startedRef.current = true;
     intervalRef.current = setInterval(() => {
       progressRef.current += 1;
-      if (progressRef.current >= 99 && !pageReady) {
+
+      // Use ref — not stale closure — to check page readiness
+      if (progressRef.current >= 99 && !pageReadyRef.current) {
         progressRef.current = 99;
         setProgress(99);
         return;
@@ -263,7 +272,7 @@ export default function PreLoader() {
       }
       setProgress(progressRef.current);
     }, 30);
-  }, [pageReady]);
+  }, []); // no deps — reads live values via refs
 
   // Start immediately on mount — no 400ms delay waiting for `mounted`
   useEffect(() => {
