@@ -89,22 +89,30 @@
     radial-gradient(ellipse at 25% 58%, rgba(140,10,28,0.10) 0%, transparent 40%);
 }
 
-/* ── Layout container ──
-   Flexbox column centred horizontally.
-   Heading sits near the top-third; ring fills the remainder.
+/* ─── Layout container ─────────────────────────────────────────────────────
+   FIX 2: justify-content:center so the group sits in the vertical middle.
+   Remove padding-top that was pushing everything up.
 ── */
 .pl-layout {
   position: relative;
   z-index: 10;
   width: 100%;
-  height: 100dvh;          /* use dvh to handle mobile chrome bars */
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Push heading to roughly top 20–25% */
-  padding-top: clamp(32px, 6vh, 72px);
-  padding-bottom: clamp(24px, 4vh, 48px);
+  justify-content: center;   /* ← centres the group vertically */
   box-sizing: border-box;
+  padding: clamp(24px, 4vh, 48px) 16px;
+}
+
+/* ── The combined heading+gap+hud group ── */
+.pl-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* invisible on first paint — GSAP fades it in */
+  visibility: hidden;
 }
 
 /* ── Heading block ── */
@@ -113,7 +121,6 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  flex-shrink: 0;
 }
 
 .pl-heading {
@@ -168,13 +175,12 @@
 
 /* ── HUD block ── */
 .pl-hud {
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
-  /* Medium ring size — not too large */
-  width: clamp(160px, 28vw, 240px);
+  /* FIX 3: Medium ring — slightly smaller viewBox radius means ring itself is medium */
+  width: clamp(160px, 28vw, 230px);
 }
 
 /* Square SVG wrapper */
@@ -241,27 +247,20 @@
 /* ── Tablet (640–1023 px) ── */
 @media (min-width: 640px) and (max-width: 1023px) {
   .pl-hud {
-    width: clamp(180px, 32vw, 260px);
+    width: clamp(180px, 30vw, 250px);
   }
 }
 
-/* ── Mobile portrait  (≤ 639 px, covers 320/360/375/390/430 px) ──
-   The astronaut in the BG is positioned centre-right; shifting
-   object-position to ~65% keeps them visible without cropping.
-── */
+/* ── Mobile portrait (≤ 639 px) ── */
 @media (max-width: 639px) {
   .pl-bg-img {
     object-position: 65% center;
   }
 
-  .pl-layout {
-    padding-top: clamp(28px, 7vh, 52px);
-  }
-
   .pl-heading {
     font-size: clamp(1.55rem, 8.5vw, 2.5rem);
     letter-spacing: 0.03em;
-    white-space: normal;        /* allow wrap on very narrow screens */
+    white-space: normal;
     word-break: keep-all;
   }
 
@@ -270,8 +269,7 @@
   }
 
   .pl-hud {
-    /* Wider on mobile so ring is readable, but won't overflow 320 px */
-    width: min(200px, 62vw);
+    width: min(190px, 60vw);
   }
 
   .pl-ready-text {
@@ -286,16 +284,12 @@
     object-position: center 30%;
   }
 
-  .pl-layout {
-    padding-top: clamp(14px, 2.5vh, 24px);
-  }
-
   .pl-gap {
     height: clamp(10px, 2vh, 20px);
   }
 
   .pl-hud {
-    width: clamp(120px, 32vh, 180px);
+    width: clamp(120px, 32vh, 175px);
   }
 
   .pl-heading {
@@ -332,6 +326,8 @@ body {
   color: var(--text);
   font-family: var(--font-body);
   margin: 0;
+  /* Prevent hero flash before preloader JS hydrates */
+  overflow: hidden;
 }
 
 :focus-visible {

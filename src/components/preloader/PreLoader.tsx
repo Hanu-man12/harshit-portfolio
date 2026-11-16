@@ -5,13 +5,14 @@ import Image from 'next/image';
 import gsap from 'gsap';
 import { useReducedMotion } from '@/lib/useReducedMotion';
 
-// ─── Ring geometry constants ──────────────────────────────────────────────────
+// ─── Ring geometry ────────────────────────────────────────────────────────────
 const SEGS      = 60;
-const GAP       = 3.8;   // degrees gap between segments
-const R         = 44;    // SVG radius (viewBox 100×100)
+const GAP       = 3.6;    // degrees gap between segments
+const R_OUTER   = 46;     // outer radius — increased for taller segments
+const R_INNER   = 40;     // inner radius — gap from centre
 const CX        = 50;
 const CY        = 50;
-const TRAIL_LEN = 8;     // how many segments fade in the laser trail
+const TRAIL_LEN = 8;
 
 // ─── Geometry helpers ─────────────────────────────────────────────────────────
 function polar(r: number, deg: number) {
@@ -19,21 +20,46 @@ function polar(r: number, deg: number) {
   return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) };
 }
 
-function arc(i: number): string {
-  const span = 360 / SEGS;
-  const a0   = i * span + GAP / 2;
-  const a1   = a0 + span - GAP;
-  const s    = polar(R, a0);
-  const e    = polar(R, a1);
-  return `M ${s.x.toFixed(3)} ${s.y.toFixed(3)} A ${R} ${R} 0 0 1 ${e.x.toFixed(3)} ${e.y.toFixed(3)}`;
+// Each segment is now a radial line from R_INNER → R_OUTER (taller dash look)
+function dashPath(i: number): string {
+  const span   = 360 / SEGS;
+  // mid-angle of this segment
+  const midDeg = i * span + span / 2;
+  // start of arc (for the arc-based approach keeping original style but taller)
+  const a0 = i * span + GAP / 2;
+  const a1 = a0 + span - GAP;
+  const s0 = polar(R_INNER, a0);
+  const s1 = polar(R_INNER, a1);
+  const e0 = polar(R_OUTER, a0);
+  const e1 = polar(R_OUTER, a1);
+  // Trapezoid path: inner-arc start → inner-arc end → outer-arc end → outer-arc start
+  // This creates a solid radial segment shape (tall dash)
+  // Simplified: use two concentric arc segments connected — standard radial HUD segment
+  const innerArcLarge = span - GAP > 180 ? 1 : 0;
+  const outerArcLarge = span - GAP > 180 ? 1 : 0;
+  return [
+    `M ${s0.x.toFixed(3)} ${s0.y.toFixed(3)}`,
+    `A ${R_INNER} ${R_INNER} 0 ${innerArcLarge} 1 ${s1.x.toFixed(3)} ${s1.y.toFixed(3)}`,
+    `L ${e1.x.toFixed(3)} ${e1.y.toFixed(3)}`,
+    `A ${R_OUTER} ${R_OUTER} 0 ${outerArcLarge} 0 ${e0.x.toFixed(3)} ${e0.y.toFixed(3)}`,
+    'Z',
+  ].join(' ');
 }
 
-// Pre-build paths — static, no re-compute on render
-const PATHS = Array.from({ length: SEGS }, (_, i) => arc(i));
+// Also keep a midpoint radial line for the glow overlay on the tip
+function midLine(i: number): string {
+  const span   = 360 / SEGS;
+  const midDeg = i * span + span / 2;
+  const inner  = polar(R_INNER - 1, midDeg);
+  const outer  = polar(R_OUTER + 1, midDeg);
+  return `M ${inner.x.toFixed(3)} ${inner.y.toFixed(3)} L ${outer.x.toFixed(3)} ${outer.y.toFixed(3)}`;
+}
+
+const DASH_PATHS = Array.from({ length: SEGS }, (_, i) => dashPath(i));
+const LINE_PATHS = Array.from({ length: SEGS }, (_, i) => midLine(i));
 
 // ─── Laser segmented ring ─────────────────────────────────────────────────────
 function LaserRing({ progress }: { progress: number }) {
-  // lit = how many segments are "charged"
   const lit = Math.round((progress / 100) * SEGS);
 
   return (
@@ -45,15 +71,13 @@ function LaserRing({ progress }: { progress: number }) {
       aria-hidden="true"
     >
       <defs>
-        {/* Soft bloom for trail segments */}
         <filter id="lsr-bloom" x="-80%" y="-80%" width="260%" height="260%" colorInterpolationFilters="sRGB">
-          <feGaussianBlur stdDeviation="1.3" result="b" />
+          <feGaussianBlur stdDeviation="1.2" result="b" />
           <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
-        {/* Intense bloom for laser tip */}
-        <filter id="lsr-tip" x="-120%" y="-120%" width="340%" height="340%" colorInterpolationFilters="sRGB">
-          <feGaussianBlur stdDeviation="2.6" result="b1" />
-          <feGaussianBlur stdDeviation="1.0" result="b2" in="SourceGraphic" />
+        <filter id="lsr-tip" x="-130%" y="-130%" width="360%" height="360%" colorInterpolationFilters="sRGB">
+          <feGaussianBlur stdDeviation="2.8" result="b1" />
+          <feGaussianBlur stdDeviation="0.9" result="b2" in="SourceGraphic" />
           <feMerge>
             <feMergeNode in="b1" />
             <feMergeNode in="b2" />
@@ -62,71 +86,48 @@ function LaserRing({ progress }: { progress: number }) {
         </filter>
       </defs>
 
-      {PATHS.map((d, i) => {
-        const active = i < lit;
+      {DASH_PATHS.map((d, i) => {
+        const active   = i < lit;
+        const isTip    = active && i === lit - 1;
+        const trailPos = active ? (lit - 1 - i) : -1;
+        const inTrail  = active && trailPos <= TRAIL_LEN;
 
         if (!active) {
-          // Inactive — dim dark-red tick
           return (
-            <path
-              key={i}
-              d={d}
-              fill="none"
-              stroke="rgba(140,18,34,0.32)"
-              strokeWidth="1.8"
-              strokeLinecap="round"
+            <path key={i} d={d}
+              fill="rgba(120,16,30,0.28)"
+              stroke="none"
             />
           );
         }
 
-        const isTip    = i === lit - 1;
-        const trailPos = lit - 1 - i;            // 0 = tip, 1,2,… = behind
-        const inTrail  = trailPos <= TRAIL_LEN;
-
         if (isTip) {
-          // Laser head — brightest, intense glow
           return (
-            <path
-              key={i}
-              d={d}
-              fill="none"
-              stroke="#ff2040"
-              strokeWidth="3.2"
-              strokeLinecap="round"
-              filter="url(#lsr-tip)"
-            />
+            <g key={i}>
+              <path d={d} fill="#ff2040" stroke="none" filter="url(#lsr-tip)" />
+              {/* Extra glow line down the centre of the tip */}
+              <path d={LINE_PATHS[i]} fill="none" stroke="rgba(255,160,170,0.6)" strokeWidth="0.8" filter="url(#lsr-tip)" />
+            </g>
           );
         }
 
         if (inTrail) {
-          // Trail — fades from bright to dim going backwards
-          const fade  = 1 - trailPos / (TRAIL_LEN + 1);  // 1 near tip → 0 at tail
-          const alpha = 0.35 + fade * 0.65;
-          const width = 1.8 + fade * 0.6;
-          const color = `rgba(230,57,70,${alpha.toFixed(2)})`;
+          const fade  = 1 - trailPos / (TRAIL_LEN + 1);
+          const alpha = 0.28 + fade * 0.72;
           return (
-            <path
-              key={i}
-              d={d}
-              fill="none"
-              stroke={color}
-              strokeWidth={width.toFixed(2)}
-              strokeLinecap="round"
-              filter={fade > 0.6 ? 'url(#lsr-bloom)' : undefined}
+            <path key={i} d={d}
+              fill={`rgba(220,50,65,${alpha.toFixed(2)})`}
+              stroke="none"
+              filter={fade > 0.55 ? 'url(#lsr-bloom)' : undefined}
             />
           );
         }
 
-        // Active but behind trail — steady crimson, no glow
+        // Active behind trail
         return (
-          <path
-            key={i}
-            d={d}
-            fill="none"
-            stroke="#b01828"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            opacity="0.75"
+          <path key={i} d={d}
+            fill="rgba(165,22,36,0.72)"
+            stroke="none"
           />
         );
       })}
@@ -134,44 +135,67 @@ function LaserRing({ progress }: { progress: number }) {
   );
 }
 
-// ─── Animated checkmark (draw-on) ────────────────────────────────────────────
+// ─── Checkmark — stable, no glitch ───────────────────────────────────────────
+// Key fix: set strokeDasharray/strokeDashoffset directly on the SVG element
+// (not via GSAP set) so there's NO single frame where the path is fully visible
+// before the animation starts.
+const CK_CIRCLE_LEN = +(2 * Math.PI * 36).toFixed(2);
+const CK_PATH_LEN   = 54; // slightly over-estimated — safe upper bound
+
 function AnimatedCheckmark() {
   const circleRef = useRef<SVGCircleElement>(null);
   const checkRef  = useRef<SVGPathElement>(null);
 
   useEffect(() => {
-    const cLen = 2 * Math.PI * 36;
-    const kLen = 52;
-
-    gsap.set(circleRef.current, { strokeDasharray: cLen, strokeDashoffset: cLen, opacity: 1 });
-    gsap.set(checkRef.current,  { strokeDasharray: kLen, strokeDashoffset: kLen, opacity: 1 });
-
-    gsap.timeline()
-      .to(circleRef.current, { strokeDashoffset: 0, duration: 0.6, ease: 'power2.out' })
-      .to(checkRef.current,  { strokeDashoffset: 0, duration: 0.4, ease: 'power2.out' }, '-=0.15');
+    if (!circleRef.current || !checkRef.current) return;
+    // Both start fully hidden via inline SVG attrs — GSAP only animates to 0
+    gsap.timeline({ defaults: { ease: 'power2.out' } })
+      .to(circleRef.current, { strokeDashoffset: 0, duration: 0.65 })
+      .to(checkRef.current,  { strokeDashoffset: 0, duration: 0.42 }, '-=0.12');
   }, []);
 
   return (
     <svg viewBox="0 0 100 100" width="100%" height="100%"
-      style={{ display: 'block', overflow: 'visible' }} aria-hidden="true">
+      style={{ display: 'block', overflow: 'visible' }} aria-hidden="true"
+    >
       <defs>
         <filter id="ck-glow" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="3.5" result="b" />
+          <feGaussianBlur stdDeviation="3.2" result="b" />
           <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
       </defs>
-      <circle ref={circleRef} cx="50" cy="50" r="36"
-        fill="none" stroke="#e63946" strokeWidth="2"
-        strokeLinecap="round" filter="url(#ck-glow)" opacity={0} />
-      <path ref={checkRef} d="M 29 52 L 44 67 L 71 33"
-        fill="none" stroke="#e63946" strokeWidth="4"
-        strokeLinecap="round" strokeLinejoin="round"
-        filter="url(#ck-glow)" opacity={0} />
+
+      {/* Circle — hidden via inline strokeDashoffset = full length */}
+      <circle
+        ref={circleRef}
+        cx="50" cy="50" r="36"
+        fill="none"
+        stroke="#e63946"
+        strokeWidth="2"
+        strokeLinecap="round"
+        filter="url(#ck-glow)"
+        strokeDasharray={CK_CIRCLE_LEN}
+        strokeDashoffset={CK_CIRCLE_LEN}
+      />
+
+      {/* Checkmark — hidden via inline strokeDashoffset = full length */}
+      <path
+        ref={checkRef}
+        d="M 29 52 L 44 67 L 71 33"
+        fill="none"
+        stroke="#e63946"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        filter="url(#ck-glow)"
+        strokeDasharray={CK_PATH_LEN}
+        strokeDashoffset={CK_PATH_LEN}
+      />
     </svg>
   );
 }
 
-// ─── Thin decorative line ─────────────────────────────────────────────────────
+// ─── Decorative line ──────────────────────────────────────────────────────────
 function DecorLine({ flip }: { flip?: boolean }) {
   return (
     <span aria-hidden="true" style={{
@@ -187,25 +211,23 @@ function DecorLine({ flip }: { flip?: boolean }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main PreLoader ───────────────────────────────────────────────────────────
 export default function PreLoader() {
   const reduced = useReducedMotion();
 
-  const [mounted,   setMounted]   = useState(false);
+  // FIX 1: Don't gate on `mounted` — render immediately on first paint.
+  // We use `visible` state only to remove from DOM after exit animation.
   const [visible,   setVisible]   = useState(true);
   const [progress,  setProgress]  = useState(1);
   const [pageReady, setPageReady] = useState(false);
   const [animDone,  setAnimDone]  = useState(false);
   const [showReady, setShowReady] = useState(false);
 
-  const rootRef    = useRef<HTMLDivElement>(null);
-  const topRef     = useRef<HTMLDivElement>(null);
-  const hudRef     = useRef<HTMLDivElement>(null);
+  const rootRef     = useRef<HTMLDivElement>(null);
+  const groupRef    = useRef<HTMLDivElement>(null);  // heading + gap + hud as one group
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressRef = useRef(1);
-
-  // ── Mount guard (SSR safe) ──
-  useEffect(() => { setMounted(true); }, []);
+  const startedRef  = useRef(false);
 
   // ── Page-ready detection ──
   useEffect(() => {
@@ -220,12 +242,12 @@ export default function PreLoader() {
     return () => clearTimeout(t);
   }, []);
 
-  // ── Progress ticker: 1→100 in ~3 s (30 ms/step) ──
+  // ── Progress ticker ──
   const startProgress = useCallback(() => {
-    if (intervalRef.current) return;
+    if (intervalRef.current || startedRef.current) return;
+    startedRef.current = true;
     intervalRef.current = setInterval(() => {
       progressRef.current += 1;
-
       if (progressRef.current >= 99 && !pageReady) {
         progressRef.current = 99;
         setProgress(99);
@@ -243,11 +265,13 @@ export default function PreLoader() {
     }, 30);
   }, [pageReady]);
 
+  // Start immediately on mount — no 400ms delay waiting for `mounted`
   useEffect(() => {
-    if (!mounted || reduced) return;
-    const t = setTimeout(startProgress, 400);
+    if (reduced) return;
+    const t = setTimeout(startProgress, 300);
     return () => clearTimeout(t);
-  }, [mounted, reduced, startProgress]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — run once on mount
 
   useEffect(() => {
     if (!pageReady || animDone) return;
@@ -262,28 +286,34 @@ export default function PreLoader() {
       if (!rootRef.current) { setVisible(false); return; }
       gsap.to(rootRef.current, {
         autoAlpha: 0, duration: 0.8, ease: 'power2.inOut',
-        onComplete: () => setVisible(false),
+        onComplete: () => {
+          // Re-enable scroll that body:overflow:hidden blocked
+          document.body.style.overflow = '';
+          setVisible(false);
+        },
       });
     }, 2000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [animDone]);
 
-  // ── Entrance animation ──
+  // ── Entrance fade-up for the content group ──
   useEffect(() => {
-    if (!mounted || reduced) return;
-    const ctx = gsap.context(() => {
-      gsap.set([topRef.current, hudRef.current], { autoAlpha: 0, y: 16 });
-      gsap.timeline()
-        .to(topRef.current, { autoAlpha: 1, y: 0, duration: 0.55, ease: 'power2.out' }, 0)
-        .to(hudRef.current, { autoAlpha: 1, y: 0, duration: 0.5,  ease: 'power2.out' }, 0.18);
-    }, rootRef);
-    return () => ctx.revert();
-  }, [mounted, reduced]);
+    if (reduced || !groupRef.current) return;
+    gsap.fromTo(groupRef.current,
+      { autoAlpha: 0, y: 14 },
+      { autoAlpha: 1, y: 0, duration: 0.55, ease: 'power2.out', delay: 0.05 }
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // once on mount
 
   // ── Interval cleanup ──
   useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
 
-  if (!mounted || !visible || reduced) return null;
+  if (reduced) return null;
+  // NOTE: We always render even before JS hydrates so the fixed overlay
+  // blocks the hero on the initial server-rendered HTML paint.
+  // `visible` only controls removal from DOM after exit animation.
+  if (!visible) return null;
 
   return (
     <div ref={rootRef} className="pl-root" role="status" aria-live="polite" aria-label="Loading portfolio">
@@ -295,56 +325,56 @@ export default function PreLoader() {
           alt="" fill priority unoptimized draggable={false}
           className="pl-bg-img" sizes="100vw"
         />
-        <div className="pl-ov-top"    />
+        <div className="pl-ov-top" />
         <div className="pl-ov-bottom" />
         <div className="pl-ov-nebula" />
       </div>
 
-      {/* ── Layout: heading above ring, everything centred ── */}
+      {/* ── FIX 2: Entire heading+gap+hud as ONE group, vertically centred ── */}
       <div className="pl-layout">
+        <div ref={groupRef} className="pl-group">
 
-        {/* HEADING BLOCK */}
-        <div ref={topRef} className="pl-top">
-          <h1 className="pl-heading" aria-label="Harshit Shaw">
-            <span className="pl-hw">HARSH</span><span className="pl-hr">IT</span><span className="pl-hw"> SHAW</span>
-          </h1>
-          <p className="pl-sub">
-            <DecorLine flip />
-            <span className="pl-sub-text">INITIALIZING PORTFOLIO</span>
-            <DecorLine />
-          </p>
-        </div>
-
-        {/* SPACER — explicit gap between heading and ring */}
-        <div className="pl-gap" aria-hidden="true" />
-
-        {/* HUD RING BLOCK */}
-        <div ref={hudRef} className="pl-hud">
-
-          {/* SVG ring or checkmark */}
-          <div className="pl-ring">
-            {showReady ? <AnimatedCheckmark /> : <LaserRing progress={progress} />}
+          {/* HEADING */}
+          <div className="pl-top">
+            <h1 className="pl-heading" aria-label="Harshit Shaw">
+              <span className="pl-hw">HARSH</span>
+              <span className="pl-hr">IT</span>
+              <span className="pl-hw"> SHAW</span>
+            </h1>
+            <p className="pl-sub">
+              <DecorLine flip />
+              <span className="pl-sub-text">INITIALIZING PORTFOLIO</span>
+              <DecorLine />
+            </p>
           </div>
 
-          {/* Centre: big % (loading) or nothing (ready, check is inside SVG) */}
-          {!showReady && (
-            <div className="pl-pct-wrap" aria-hidden="true">
-              <span className="pl-pct">
-                {progress}<span className="pl-pct-unit">%</span>
-              </span>
-            </div>
-          )}
+          {/* GAP — preserved exactly */}
+          <div className="pl-gap" aria-hidden="true" />
 
-          {/* SYSTEM READY — below ring, only when done */}
-          {showReady && (
-            <div className="pl-ready" aria-live="assertive">
-              <DecorLine flip />
-              <span className="pl-ready-text">SYSTEM READY</span>
-              <DecorLine />
+          {/* HUD */}
+          <div className="pl-hud">
+            <div className="pl-ring">
+              {showReady ? <AnimatedCheckmark /> : <LaserRing progress={progress} />}
             </div>
-          )}
 
-        </div>
+            {!showReady && (
+              <div className="pl-pct-wrap" aria-hidden="true">
+                <span className="pl-pct">
+                  {progress}<span className="pl-pct-unit">%</span>
+                </span>
+              </div>
+            )}
+
+            {showReady && (
+              <div className="pl-ready" aria-live="assertive">
+                <DecorLine flip />
+                <span className="pl-ready-text">SYSTEM READY</span>
+                <DecorLine />
+              </div>
+            )}
+          </div>
+
+        </div>{/* /pl-group */}
       </div>
     </div>
   );
