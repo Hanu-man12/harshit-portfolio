@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 export type MediaTier = 'desktop' | 'tablet' | 'mobile';
 
 export function useMediaTier(): MediaTier {
-  const [tier, setTier] = useState<MediaTier>('desktop');
+  const [tier, setTier] = useState<MediaTier>('mobile');
   useEffect(() => {
     function update() {
       const w = window.innerWidth;
