@@ -58,18 +58,10 @@ function midLine(i: number): string {
 const DASH_PATHS = Array.from({ length: SEGS }, (_, i) => dashPath(i));
 const LINE_PATHS = Array.from({ length: SEGS }, (_, i) => midLine(i));
 
-// ─── Laser segmented ring ─────────────────────────────────────────────────────
-function LaserRing({ progress }: { progress: number }) {
-  const lit = Math.round((progress / 100) * SEGS);
-
+// ─── Stable SVG filters — rendered once outside LaserRing ───────────────────
+function LaserFilters() {
   return (
-    <svg
-      viewBox="0 0 100 100"
-      width="100%"
-      height="100%"
-      style={{ display: 'block', overflow: 'visible' }}
-      aria-hidden="true"
-    >
+    <svg width="0" height="0" style={{ position: 'absolute', overflow: 'hidden' }} aria-hidden="true">
       <defs>
         <filter id="lsr-bloom" x="-80%" y="-80%" width="260%" height="260%" colorInterpolationFilters="sRGB">
           <feGaussianBlur stdDeviation="1.2" result="b" />
@@ -85,6 +77,22 @@ function LaserRing({ progress }: { progress: number }) {
           </feMerge>
         </filter>
       </defs>
+    </svg>
+  );
+}
+
+// ─── Laser segmented ring ─────────────────────────────────────────────────────
+function LaserRing({ progress }: { progress: number }) {
+  const lit = Math.round((progress / 100) * SEGS);
+
+  return (
+    <svg
+      viewBox="0 0 100 100"
+      width="100%"
+      height="100%"
+      style={{ display: 'block', overflow: 'visible' }}
+      aria-hidden="true"
+    >
 
       {DASH_PATHS.map((d, i) => {
         const active   = i < lit;
@@ -373,6 +381,7 @@ export default function PreLoader() {
 
           {/* HUD */}
           <div className="pl-hud">
+            <LaserFilters />
             <div className="pl-ring">
               {showReady ? <AnimatedCheckmark /> : <LaserRing progress={progress} />}
             </div>

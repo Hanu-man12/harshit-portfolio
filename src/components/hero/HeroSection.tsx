@@ -50,6 +50,12 @@ export default function HeroSection() {
     return () => observers.forEach(o => o.disconnect());
   }, []);
 
+  // If reduced motion, skip scramble but ensure heading is visible
+  useEffect(() => {
+    if (!reduced || !nameRef.current) return;
+    nameRef.current.style.opacity = '1';
+  }, [reduced]);
+
   // Name scramble — fires after preloader exits on initial load,
   // and also on mount for repeat visits (no preloader shown).
   useEffect(() => {
@@ -57,13 +63,14 @@ export default function HeroSection() {
 
     const finalText = 'HARSHIT SHAW';
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%';
+    const el = nameRef.current;
 
     function runScramble() {
-      const el = nameRef.current;
       if (!el) return;
       let frame = 0;
       const total = 30;
-      // Reset to final text first so it's never blank
+      // Make heading visible before scramble starts
+      el.style.opacity = '1';
       el.textContent = finalText;
       const anim = setInterval(() => {
         el.textContent = finalText.split('').map((char, i) => {
@@ -80,12 +87,14 @@ export default function HeroSection() {
     const preloaderInDom = !!document.querySelector('.pl-root');
 
     if (preloaderInDom) {
-      // Wait for preloader to signal completion
+      // Keep heading invisible until preloader signals done
+      el.style.opacity = '0';
       const handler = () => runScramble();
       window.addEventListener('preloader:done', handler, { once: true });
       return () => window.removeEventListener('preloader:done', handler);
     } else {
-      // No preloader (navigated back, repeat visit) — run immediately
+      // No preloader (navigated back, repeat visit) — ensure visible and run immediately
+      el.style.opacity = '1';
       runScramble();
     }
   }, [reduced]);
@@ -108,7 +117,7 @@ export default function HeroSection() {
         <h1
           ref={nameRef}
           className="text-[clamp(3rem,12vw,8rem)] font-display leading-[0.9] text-[var(--text)] mb-4"
-          style={{fontFamily: 'var(--font-display)'}}
+          style={{fontFamily: 'var(--font-display)', opacity: 0}}
         >
           HARSHIT SHAW
         </h1>
