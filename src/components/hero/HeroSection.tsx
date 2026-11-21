@@ -50,24 +50,44 @@ export default function HeroSection() {
     return () => observers.forEach(o => o.disconnect());
   }, []);
 
-  // Name scramble
+  // Name scramble — fires after preloader exits on initial load,
+  // and also on mount for repeat visits (no preloader shown).
   useEffect(() => {
     if (reduced || !nameRef.current) return;
+
     const finalText = 'HARSHIT SHAW';
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%';
-    let frame = 0;
-    const total = 30;
-    const el = nameRef.current;
-    const anim = setInterval(() => {
-      el.textContent = finalText.split('').map((char, i) => {
-        if (char === ' ') return ' ';
-        if (frame / total > i / finalText.length) return char;
-        return chars[Math.floor(Math.random() * chars.length)];
-      }).join('');
-      frame++;
-      if (frame > total) { el.textContent = finalText; clearInterval(anim); }
-    }, 50);
-    return () => clearInterval(anim);
+
+    function runScramble() {
+      const el = nameRef.current;
+      if (!el) return;
+      let frame = 0;
+      const total = 30;
+      // Reset to final text first so it's never blank
+      el.textContent = finalText;
+      const anim = setInterval(() => {
+        el.textContent = finalText.split('').map((char, i) => {
+          if (char === ' ') return ' ';
+          if (frame / total > i / finalText.length) return char;
+          return chars[Math.floor(Math.random() * chars.length)];
+        }).join('');
+        frame++;
+        if (frame > total) { el.textContent = finalText; clearInterval(anim); }
+      }, 50);
+    }
+
+    // Check if preloader is currently in the DOM (initial page load)
+    const preloaderInDom = !!document.querySelector('.pl-root');
+
+    if (preloaderInDom) {
+      // Wait for preloader to signal completion
+      const handler = () => runScramble();
+      window.addEventListener('preloader:done', handler, { once: true });
+      return () => window.removeEventListener('preloader:done', handler);
+    } else {
+      // No preloader (navigated back, repeat visit) — run immediately
+      runScramble();
+    }
   }, [reduced]);
 
   function scrollToSection(id: string) {

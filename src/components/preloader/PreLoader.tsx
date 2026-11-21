@@ -136,27 +136,39 @@ function LaserRing({ progress }: { progress: number }) {
 }
 
 // ─── Checkmark — stable, no glitch ───────────────────────────────────────────
-// Key fix: set strokeDasharray/strokeDashoffset directly on the SVG element
-// (not via GSAP set) so there's NO single frame where the path is fully visible
-// before the animation starts.
+// Fix: animate opacity+scale on the whole SVG, then draw circle, then fade tick
+// This avoids the distorted-first-frame that stroke-dashoffset causes with glow filters.
 const CK_CIRCLE_LEN = +(2 * Math.PI * 36).toFixed(2);
-const CK_PATH_LEN   = 54; // slightly over-estimated — safe upper bound
+const CK_PATH_LEN   = 54;
 
 function AnimatedCheckmark() {
+  const wrapRef   = useRef<SVGSVGElement>(null);
   const circleRef = useRef<SVGCircleElement>(null);
   const checkRef  = useRef<SVGPathElement>(null);
 
   useEffect(() => {
-    if (!circleRef.current || !checkRef.current) return;
-    // Both start fully hidden via inline SVG attrs — GSAP only animates to 0
+    if (!wrapRef.current || !circleRef.current || !checkRef.current) return;
+
+    // 1. SVG starts invisible (opacity 0 set inline on the element via GSAP set)
+    gsap.set(wrapRef.current,  { opacity: 0, scale: 0.88, transformOrigin: '50% 50%' });
+    // 2. Paths start fully hidden via their inline SVG strokeDashoffset attrs
+    // (already set in JSX)
+
     gsap.timeline({ defaults: { ease: 'power2.out' } })
-      .to(circleRef.current, { strokeDashoffset: 0, duration: 0.65 })
-      .to(checkRef.current,  { strokeDashoffset: 0, duration: 0.42 }, '-=0.12');
+      // fade+scale the whole SVG in first so the glow filter renders on a stable element
+      .to(wrapRef.current,  { opacity: 1, scale: 1, duration: 0.22 })
+      // then draw the circle
+      .to(circleRef.current, { strokeDashoffset: 0, duration: 0.60 }, '-=0.05')
+      // then draw the tick
+      .to(checkRef.current,  { strokeDashoffset: 0, duration: 0.38 }, '-=0.10');
   }, []);
 
   return (
-    <svg viewBox="0 0 100 100" width="100%" height="100%"
-      style={{ display: 'block', overflow: 'visible' }} aria-hidden="true"
+    <svg
+      ref={wrapRef}
+      viewBox="0 0 100 100" width="100%" height="100%"
+      style={{ display: 'block', overflow: 'visible', opacity: 0 }}
+      aria-hidden="true"
     >
       <defs>
         <filter id="ck-glow" x="-60%" y="-60%" width="220%" height="220%">
@@ -297,6 +309,8 @@ export default function PreLoader() {
         autoAlpha: 0, duration: 0.8, ease: 'power2.inOut',
         onComplete: () => {
           setVisible(false);
+          // Signal hero to trigger its entrance animation
+          window.dispatchEvent(new CustomEvent('preloader:done'));
         },
       });
     }, 2000);
@@ -345,7 +359,6 @@ export default function PreLoader() {
           <div className="pl-top">
             <h1 className="pl-heading" aria-label="Harshit Shaw">
               <span className="pl-hw">HARSHIT</span>
-
               <span className="pl-hr"> SHAW</span>
             </h1>
             <p className="pl-sub">
