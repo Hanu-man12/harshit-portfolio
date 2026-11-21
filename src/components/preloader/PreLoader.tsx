@@ -144,8 +144,8 @@ function LaserRing({ progress }: { progress: number }) {
 }
 
 // ─── Checkmark — stable, no glitch ───────────────────────────────────────────
-// Fix: animate opacity+scale on the whole SVG, then draw circle, then fade tick
-// This avoids the distorted-first-frame that stroke-dashoffset causes with glow filters.
+// strokeDashoffset set via style prop (not SVG attribute) so React and GSAP
+// both operate on the same CSS style property — no presentation-attribute race.
 const CK_CIRCLE_LEN = +(2 * Math.PI * 36).toFixed(2);
 const CK_PATH_LEN   = 54;
 
@@ -157,17 +157,15 @@ function AnimatedCheckmark() {
   useEffect(() => {
     if (!wrapRef.current || !circleRef.current || !checkRef.current) return;
 
-    // 1. SVG starts invisible (opacity 0 set inline on the element via GSAP set)
+    // Hard-set everything before first paint via GSAP — runs synchronously
+    // before browser composites the frame, so nothing is ever partially visible.
     gsap.set(wrapRef.current,  { opacity: 0, scale: 0.88, transformOrigin: '50% 50%' });
-    // 2. Paths start fully hidden via their inline SVG strokeDashoffset attrs
-    // (already set in JSX)
+    gsap.set(circleRef.current, { strokeDashoffset: CK_CIRCLE_LEN });
+    gsap.set(checkRef.current,  { strokeDashoffset: CK_PATH_LEN });
 
     gsap.timeline({ defaults: { ease: 'power2.out' } })
-      // fade+scale the whole SVG in first so the glow filter renders on a stable element
-      .to(wrapRef.current,  { opacity: 1, scale: 1, duration: 0.22 })
-      // then draw the circle
+      .to(wrapRef.current,   { opacity: 1, scale: 1, duration: 0.22 })
       .to(circleRef.current, { strokeDashoffset: 0, duration: 0.60 }, '-=0.05')
-      // then draw the tick
       .to(checkRef.current,  { strokeDashoffset: 0, duration: 0.38 }, '-=0.10');
   }, []);
 
@@ -185,7 +183,7 @@ function AnimatedCheckmark() {
         </filter>
       </defs>
 
-      {/* Circle — hidden via inline strokeDashoffset = full length */}
+      {/* Circle — hidden via style prop so GSAP and React use the same property */}
       <circle
         ref={circleRef}
         cx="50" cy="50" r="36"
@@ -194,11 +192,13 @@ function AnimatedCheckmark() {
         strokeWidth="2"
         strokeLinecap="round"
         filter="url(#ck-glow)"
-        strokeDasharray={CK_CIRCLE_LEN}
-        strokeDashoffset={CK_CIRCLE_LEN}
+        style={{
+          strokeDasharray: CK_CIRCLE_LEN,
+          strokeDashoffset: CK_CIRCLE_LEN,
+        }}
       />
 
-      {/* Checkmark — hidden via inline strokeDashoffset = full length */}
+      {/* Tick — hidden via style prop */}
       <path
         ref={checkRef}
         d="M 29 52 L 44 67 L 71 33"
@@ -208,8 +208,10 @@ function AnimatedCheckmark() {
         strokeLinecap="round"
         strokeLinejoin="round"
         filter="url(#ck-glow)"
-        strokeDasharray={CK_PATH_LEN}
-        strokeDashoffset={CK_PATH_LEN}
+        style={{
+          strokeDasharray: CK_PATH_LEN,
+          strokeDashoffset: CK_PATH_LEN,
+        }}
       />
     </svg>
   );
