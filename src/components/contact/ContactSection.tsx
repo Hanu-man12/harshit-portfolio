@@ -137,20 +137,20 @@ export default function ContactSection() {
       return;
     }
     setCountryCode(item.code);
-    setCountryQuery(item.name);
-    // Level1/Level2 reset is handled inside the location useEffect
+    setCountryQuery(`${flag(item.code)} ${item.name}`);
   }
 
   function handleCountryInput(value: string) {
     setCountryQuery(value);
-    const normalised = value.trim().toLowerCase();
+    // Strip a leading flag emoji (2 code-point chars) if present so plain
+    // name typing and datalist "🇮🇳 India" selection both resolve correctly.
+    const stripped = value.replace(/^(\p{RI}\p{RI})\s*/u, '').trim().toLowerCase();
     const match = COUNTRIES.find(
-      c => c.name.toLowerCase() === normalised || c.code.toLowerCase() === normalised
+      c => c.name.toLowerCase() === stripped || c.code.toLowerCase() === stripped
     );
     if (match) {
       if (match.code !== countryCode) selectCountryByCode(match.code);
     } else if (countryCode) {
-      // User is typing something that doesn't match — clear the confirmed selection
       setCountryCode('');
       setLevel1Id('');
       setLevel2Id('');
@@ -197,9 +197,8 @@ export default function ContactSection() {
   const emailHref = `mailto:${profile.links.email}?subject=${encodeURIComponent(`Portfolio message from ${draft?.firstName ?? ''} ${draft?.lastName ?? ''}`)}&body=${encodeURIComponent(messageBody)}`;
   const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(messageBody)}`;
 
-  // ── Datalist options ───────────────────────────────────────────────────────
-  // Render at most 240 options in the datalist so old browsers don't hang.
-  const datalistOptions = COUNTRIES.map(c => c.name);
+  // ── Datalist options — flag emoji + name so browser dropdown shows the flag ─
+  const datalistOptions = COUNTRIES.map(c => `${flag(c.code)} ${c.name}`);
 
   return <>
     <main id="main-content" className="relative isolate overflow-hidden px-5 pb-20 pt-28 sm:px-8 sm:pb-24 sm:pt-32 lg:px-12">
