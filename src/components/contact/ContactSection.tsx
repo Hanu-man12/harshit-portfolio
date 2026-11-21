@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowUpRight, ChevronDown, Mail, MessageCircle, Phone, X } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { ArrowUpRight, Mail, MessageCircle, Phone, X } from 'lucide-react';
 import { profile } from '@/data/profile';
-import { COUNTRIES, type Country } from '@/data/countries';
+import { COUNTRIES } from '@/data/countries';
 import Button from '@/components/ui/Button';
+import { CountrySelect, DialCodeSelect } from './CountryDropdowns';
 
 /*
  * Location data source: openadmindata.org (public, no API key, CORS-open)
@@ -23,7 +24,7 @@ type ContactDraft = Record<string, string>;
 const fieldCls = 'w-full min-w-0 rounded-lg border border-[var(--border)] bg-[var(--bg)] px-4 py-3.5 text-[var(--text)] placeholder:text-[var(--text-muted)]/65 transition-colors focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20';
 const labelCls = 'mb-2 block font-mono text-[0.65rem] font-medium uppercase tracking-[0.16em] text-[var(--text-muted)]';
 
-function flag(code: string) {
+function flagEmoji(code: string) {
   return Array.from(code.toUpperCase()).map(c => String.fromCodePoint(127397 + c.charCodeAt(0))).join('');
 }
 
@@ -40,7 +41,6 @@ function ContactDetail({ icon: Icon, label, value, href }: { icon: typeof Mail; 
 export default function ContactSection() {
   // ── Country selection ──────────────────────────────────────────────────────
   const [countryCode, setCountryCode] = useState('');
-  const [countryQuery, setCountryQuery] = useState('');
   const country = COUNTRIES.find(c => c.code === countryCode) ?? null;
 
   // ── Location data (openadmindata.org) ─────────────────────────────────────
@@ -128,33 +128,10 @@ export default function ContactSection() {
     return () => window.removeEventListener('keydown', handler);
   }, [sendOpen]);
 
-  // ── Country selection helpers ─────────────────────────────────────────────
+  // ── Country selection helper ──────────────────────────────────────────────
   function selectCountryByCode(code: string) {
-    const item = COUNTRIES.find(c => c.code === code);
-    if (!item) {
-      setCountryCode('');
-      setCountryQuery('');
-      return;
-    }
-    setCountryCode(item.code);
-    setCountryQuery(`${flag(item.code)} ${item.name}`);
-  }
-
-  function handleCountryInput(value: string) {
-    setCountryQuery(value);
-    // Strip a leading flag emoji (2 code-point chars) if present so plain
-    // name typing and datalist "🇮🇳 India" selection both resolve correctly.
-    const stripped = value.replace(/^(\p{RI}\p{RI})\s*/u, '').trim().toLowerCase();
-    const match = COUNTRIES.find(
-      c => c.name.toLowerCase() === stripped || c.code.toLowerCase() === stripped
-    );
-    if (match) {
-      if (match.code !== countryCode) selectCountryByCode(match.code);
-    } else if (countryCode) {
-      setCountryCode('');
-      setLevel1Id('');
-      setLevel2Id('');
-    }
+    setCountryCode(code || '');
+    if (!code) { setLevel1Id(''); setLevel2Id(''); }
   }
 
   // ── Form submission ───────────────────────────────────────────────────────
@@ -196,9 +173,6 @@ export default function ContactSection() {
 
   const emailHref = `mailto:${profile.links.email}?subject=${encodeURIComponent(`Portfolio message from ${draft?.firstName ?? ''} ${draft?.lastName ?? ''}`)}&body=${encodeURIComponent(messageBody)}`;
   const whatsappHref = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(messageBody)}`;
-
-  // ── Datalist options — flag emoji + name so browser dropdown shows the flag ─
-  const datalistOptions = COUNTRIES.map(c => `${flag(c.code)} ${c.name}`);
 
   return <>
     <main id="main-content" className="relative isolate overflow-hidden px-5 pb-20 pt-28 sm:px-8 sm:pb-24 sm:pt-32 lg:px-12">
@@ -256,53 +230,22 @@ export default function ContactSection() {
               {/* ── Country ── */}
               <div>
                 <label className={labelCls} htmlFor="cf-country">Country <span className="text-[var(--accent)]">*</span></label>
-                <div className="relative">
-                  <input
-                    className={`${fieldCls} pr-10`}
-                    id="cf-country"
-                    name="countrySearch"
-                    list="cf-country-list"
-                    value={countryQuery}
-                    onChange={e => handleCountryInput(e.target.value)}
-                    placeholder="Search country…"
-                    autoComplete="country-name"
-                    aria-describedby="cf-country-hint"
-                  />
-                  <datalist id="cf-country-list">
-                    {datalistOptions.map(n => <option key={n} value={n} />)}
-                  </datalist>
-                  <ChevronDown size={17} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
-                </div>
-                {/* Hidden fields carry confirmed values into FormData */}
+                <CountrySelect
+                  id="cf-country"
+                  value={countryCode}
+                  onChange={selectCountryByCode}
+                />
                 <input type="hidden" name="country" value={country?.name ?? ''} />
                 <p id="cf-country-hint" className="mt-1.5 text-xs text-[var(--text-muted)]">
-                  {country ? `${flag(country.code)} ${country.name} · ${country.dialCode}` : 'Start typing to search.'}
+                  {country ? `${flagEmoji(country.code)} ${country.name} · ${country.dialCode}` : 'Select your country.'}
                 </p>
               </div>
 
               {/* ── Phone with calling-code selector ── */}
               <div>
                 <label className={labelCls} htmlFor="cf-phone">Phone number <span className="normal-case tracking-normal">(optional)</span></label>
-                {/* Calling-code select is ~110px; phone input takes the rest.
-                    Both are inside a min-w-0 flex so they never overflow on 320px. */}
                 <div className="flex min-w-0 items-stretch gap-2">
-                  <div className="relative shrink-0" style={{ width: 112 }}>
-                    <select
-                      aria-label="Country calling code"
-                      name="dialCode"
-                      value={countryCode}
-                      onChange={e => selectCountryByCode(e.target.value)}
-                      className="h-full w-full appearance-none rounded-lg border border-[var(--border)] bg-[var(--bg)] py-3.5 pl-3 pr-7 text-sm text-[var(--text)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
-                    >
-                      <option value="">+___</option>
-                      {COUNTRIES.map(c => (
-                        <option key={c.code} value={c.code}>
-                          {flag(c.code)} {c.dialCode}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={14} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" aria-hidden="true" />
-                  </div>
+                  <DialCodeSelect value={countryCode} onChange={selectCountryByCode} />
                   <input
                     className={`${fieldCls} flex-1 min-w-0`}
                     id="cf-phone"
