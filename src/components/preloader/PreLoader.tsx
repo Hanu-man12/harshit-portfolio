@@ -157,16 +157,20 @@ function AnimatedCheckmark() {
   useEffect(() => {
     if (!wrapRef.current || !circleRef.current || !checkRef.current) return;
 
-    // Hard-set everything before first paint via GSAP — runs synchronously
-    // before browser composites the frame, so nothing is ever partially visible.
+    // Wrapper: invisible on mount
     gsap.set(wrapRef.current,  { opacity: 0, scale: 0.88, transformOrigin: '50% 50%' });
+    // Circle: starts fully hidden via dashoffset
     gsap.set(circleRef.current, { strokeDashoffset: CK_CIRCLE_LEN });
-    gsap.set(checkRef.current,  { strokeDashoffset: CK_PATH_LEN });
+    // Tick: start fully invisible via opacity — never expose a partial stroke
+    gsap.set(checkRef.current,  { opacity: 0 });
 
     gsap.timeline({ defaults: { ease: 'power2.out' } })
+      // 1. Fade+scale the whole SVG in
       .to(wrapRef.current,   { opacity: 1, scale: 1, duration: 0.22 })
+      // 2. Draw the circle
       .to(circleRef.current, { strokeDashoffset: 0, duration: 0.60 }, '-=0.05')
-      .to(checkRef.current,  { strokeDashoffset: 0, duration: 0.38 }, '-=0.10');
+      // 3. Reveal the complete tick via opacity only — no partial stroke ever visible
+      .to(checkRef.current,  { opacity: 1, duration: 0.28, ease: 'power1.in' });
   }, []);
 
   return (
@@ -183,7 +187,7 @@ function AnimatedCheckmark() {
         </filter>
       </defs>
 
-      {/* Circle — hidden via style prop so GSAP and React use the same property */}
+      {/* Circle — drawn via strokeDashoffset animation */}
       <circle
         ref={circleRef}
         cx="50" cy="50" r="36"
@@ -198,7 +202,7 @@ function AnimatedCheckmark() {
         }}
       />
 
-      {/* Tick — hidden via style prop */}
+      {/* Tick — complete path, revealed via opacity only, never partial */}
       <path
         ref={checkRef}
         d="M 29 52 L 44 67 L 71 33"
@@ -208,10 +212,7 @@ function AnimatedCheckmark() {
         strokeLinecap="round"
         strokeLinejoin="round"
         filter="url(#ck-glow)"
-        style={{
-          strokeDasharray: CK_PATH_LEN,
-          strokeDashoffset: CK_PATH_LEN,
-        }}
+        style={{ opacity: 0 }}
       />
     </svg>
   );
