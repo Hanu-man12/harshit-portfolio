@@ -12,6 +12,7 @@ const NAV_LINKS = [
   { label: 'Projects', href: '/projects' },
   { label: 'Achievements', href: '/certificates' },
   { label: 'Open Source', href: '/open-source' },
+  { label: 'Contact', href: '/contact' },
 ];
 
 export default function Nav() {
@@ -42,13 +43,6 @@ export default function Nav() {
     };
   }, [open]);
 
-  function scrollToContact() {
-    setOpen(false);
-    window.setTimeout(() => {
-      document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' });
-    }, 0);
-  }
-
   function isActive(href: string) {
     return href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(`${href}/`);
   }
@@ -59,14 +53,14 @@ export default function Nav() {
         <Link href="/" aria-label="Harshit Shaw home" className="text-2xl font-display text-[var(--accent)]" style={{fontFamily: 'var(--font-display)'}} onClick={() => setOpen(false)}>
           HS
         </Link>
-        <nav aria-label="Main navigation" className="hidden min-[900px]:flex items-center gap-8">
+        <nav aria-label="Main navigation" className="hidden min-[900px]:flex items-center gap-3 lg:gap-4 xl:gap-8">
           {NAV_LINKS.map(link => (
             <Link
               key={link.label}
               href={link.href}
               onClick={() => setOpen(false)}
               aria-current={isActive(link.href) ? 'page' : undefined}
-              className={`relative py-2 text-base font-semibold uppercase tracking-wider transition-colors duration-200 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--accent)] after:transition-transform after:duration-200 ${
+              className={`relative whitespace-nowrap py-2 text-base font-semibold uppercase tracking-wider transition-colors duration-200 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--accent)] after:transition-transform after:duration-200 ${
                 isActive(link.href)
                   ? 'text-[var(--accent)] after:scale-x-100'
                   : 'text-[var(--text-muted)] after:scale-x-0 hover:text-[var(--accent)] hover:after:scale-x-100'
@@ -79,7 +73,7 @@ export default function Nav() {
         </nav>
         <div className="hidden min-[900px]:flex items-center gap-3">
           <ThemeToggle />
-          <Button size="sm" onClick={scrollToContact}>Let&apos;s Connect</Button>
+          <Button href="/contact" size="sm">Let&apos;s Connect</Button>
         </div>
         <div className="flex min-[900px]:hidden items-center gap-2">
           <ThemeToggle />
@@ -124,7 +118,7 @@ export default function Nav() {
                   </Link>
                 );
               })}
-              <Button className="mt-3 min-h-11 w-full" onClick={scrollToContact}>
+              <Button href="/contact" className="mt-3 min-h-11 w-full" onClick={() => setOpen(false)}>
                 Let&apos;s Connect
               </Button>
             </div>

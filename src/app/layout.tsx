@@ -4,7 +4,6 @@ import './globals.css';
 import LenisProvider from '@/components/ui/LenisProvider';
 import Nav from '@/components/ui/Nav';
 import Footer from '@/components/ui/Footer';
-import ContactSection from '@/components/contact/ContactSection';
 import PreLoader from '@/components/preloader/PreLoader';
 
 const bebasNeue = Bebas_Neue({
@@ -73,7 +72,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <PreLoader />
           <Nav />
           {children}
-          <ContactSection />
           <Footer />
         </LenisProvider>
       </body>

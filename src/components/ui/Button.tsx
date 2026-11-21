@@ -32,6 +32,6 @@ const variantClasses: Record<Variant, string> = {
 
 export default function Button({ variant = 'primary', size = 'md', href, children, onClick, className = '', target, rel, type = 'button', disabled, 'aria-label': ariaLabel }: ButtonProps) {
   const classes = `inline-flex items-center justify-center rounded-md font-medium transition-all focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${sizeClasses[size]} ${variantClasses[variant]} ${className}`;
-  if (href) return <Link href={href} className={classes} target={target} rel={rel} aria-label={ariaLabel}>{children}</Link>;
+  if (href) return <Link href={href} onClick={onClick} className={classes} target={target} rel={rel} aria-label={ariaLabel}>{children}</Link>;
   return <button type={type} onClick={onClick} className={classes} disabled={disabled} aria-label={ariaLabel}>{children}</button>;
 }
