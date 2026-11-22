@@ -5,6 +5,8 @@ import LenisProvider from '@/components/ui/LenisProvider';
 import Nav from '@/components/ui/Nav';
 import Footer from '@/components/ui/Footer';
 import PreLoader from '@/components/preloader/PreLoader';
+import { TransitionProvider } from '@/components/transitions/TransitionContext';
+import TransitionOverlay from '@/components/transitions/TransitionOverlay';
 
 const bebasNeue = Bebas_Neue({
   weight: '400',
@@ -68,12 +70,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <LenisProvider>
-          <PreLoader />
-          <Nav />
-          {children}
-          <Footer />
-        </LenisProvider>
+        <TransitionProvider>
+          <LenisProvider>
+            <PreLoader />
+            <Nav />
+            {children}
+            <Footer />
+          </LenisProvider>
+          <TransitionOverlay />
+        </TransitionProvider>
       </body>
     </html>
   );
