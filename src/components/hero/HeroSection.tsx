@@ -58,12 +58,37 @@ export default function HeroSection() {
 
   // Name scramble — fires after preloader exits on initial load,
   // and also on mount for repeat visits (no preloader shown).
+  // After scramble completes, the h1 textContent is replaced with
+  // individually-wrapped <span> elements for letter-hover.
   useEffect(() => {
     if (reduced || !nameRef.current) return;
 
     const finalText = 'HARSHIT SHAW';
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%';
     const el = nameRef.current;
+
+    function buildLetterSpans() {
+      if (!el) return;
+      // Split into per-letter spans; space becomes a gap span
+      const fragment = document.createDocumentFragment();
+      finalText.split('').forEach((char) => {
+        if (char === ' ') {
+          const sp = document.createElement('span');
+          sp.setAttribute('aria-hidden', 'true');
+          sp.style.display = 'inline-block';
+          sp.style.width = '0.3em';
+          fragment.appendChild(sp);
+        } else {
+          const sp = document.createElement('span');
+          sp.textContent = char;
+          sp.className = 'hero-letter';
+          sp.style.display = 'inline-block';
+          fragment.appendChild(sp);
+        }
+      });
+      el.textContent = '';
+      el.appendChild(fragment);
+    }
 
     function runScramble() {
       if (!el) return;
@@ -79,7 +104,12 @@ export default function HeroSection() {
           return chars[Math.floor(Math.random() * chars.length)];
         }).join('');
         frame++;
-        if (frame > total) { el.textContent = finalText; clearInterval(anim); }
+        if (frame > total) {
+          el.textContent = finalText;
+          clearInterval(anim);
+          // After scramble settles, replace text with letter spans for hover
+          buildLetterSpans();
+        }
       }, 50);
     }
 

@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X } from 'lucide-react';
+import Image from 'next/image';
 import ThemeToggle from './ThemeToggle';
+import HSMonogram from './HSMonogram';
 import { usePageTransition, getTransitionType } from '@/components/transitions/TransitionContext';
 
 const NAV_LINKS = [
@@ -65,15 +67,41 @@ export default function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 flex items-center justify-between h-[4.25rem] sm:h-[4.5rem]">
-        <a
-          href="/"
-          aria-label="Harshit Shaw home"
-          className="text-2xl font-display text-[var(--accent)]"
-          style={{ fontFamily: 'var(--font-display)' }}
-          onClick={(e) => handleNavClick(e, '/')}
-        >
-          HS
-        </a>
+        {/* Left branding: HS monogram + signature */}
+        <div className="flex items-center gap-2">
+          <HSMonogram />
+          {/* Signature — hidden on mobile, shown md+ */}
+          <div
+            className="hidden md:block"
+            style={{
+              transform: 'rotate(65deg)',
+              transformOrigin: 'center center',
+              width: 48,
+              height: 28,
+              overflow: 'visible',
+              flexShrink: 0,
+            }}
+            aria-hidden="true"
+          >
+            <Image
+              src="/assets/signature/harshit-signature.png"
+              alt=""
+              width={80}
+              height={40}
+              style={{
+                filter:
+                  'sepia(1) saturate(10) hue-rotate(310deg) brightness(0.85)',
+                mixBlendMode: 'multiply',
+                opacity: 0.75,
+                objectFit: 'contain',
+                width: '80px',
+                height: 'auto',
+              }}
+              priority={false}
+              unoptimized
+            />
+          </div>
+        </div>
 
         {/* Desktop nav */}
         <nav aria-label="Main navigation" className="hidden min-[900px]:flex items-center gap-3 lg:gap-4 xl:gap-8">
@@ -83,14 +111,29 @@ export default function Nav() {
               href={link.href}
               onClick={(e) => handleNavClick(e, link.href)}
               aria-current={isActive(link.href) ? 'page' : undefined}
-              className={`relative whitespace-nowrap py-2 text-base font-semibold uppercase tracking-wider transition-colors duration-200 after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-[var(--accent)] after:transition-transform after:duration-200 cursor-pointer ${
+              className={`nav-link relative whitespace-nowrap py-2 text-base font-semibold uppercase tracking-wider transition-colors duration-200 cursor-pointer ${
                 isActive(link.href)
-                  ? 'text-[var(--accent)] after:scale-x-100'
-                  : 'text-[var(--text-muted)] after:scale-x-0 hover:text-[var(--accent)] hover:after:scale-x-100'
+                  ? 'text-[var(--accent)] nav-link--active'
+                  : 'text-[var(--text-muted)] hover:text-[var(--accent)]'
               }`}
               style={{ fontFamily: 'var(--font-display)' }}
             >
               {link.label}
+              <span
+                className="nav-underline"
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: isActive(link.href) ? '2px' : '1px',
+                  background: 'var(--accent)',
+                  transform: isActive(link.href) ? 'scaleX(1)' : 'scaleX(0)',
+                  transformOrigin: 'left center',
+                  transition: 'transform 0.2s ease, opacity 0.2s ease',
+                  opacity: isActive(link.href) ? 1 : 0.7,
+                }}
+              />
             </a>
           ))}
         </nav>
@@ -164,6 +207,19 @@ export default function Nav() {
           </motion.nav>
         )}
       </AnimatePresence>
+
+      {/* Nav underline hover styles */}
+      <style>{`
+        .nav-link:hover .nav-underline {
+          transform: scaleX(1) !important;
+          opacity: 0.7 !important;
+        }
+        .nav-link--active .nav-underline {
+          transform: scaleX(1) !important;
+          height: 2px !important;
+          opacity: 1 !important;
+        }
+      `}</style>
     </header>
   );
 }
