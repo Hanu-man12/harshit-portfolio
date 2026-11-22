@@ -2,18 +2,31 @@
 
 /**
  * Custom dropdowns for country + dial-code selection.
- * Uses a React-rendered list so flag emojis render correctly on all browsers/OS,
- * unlike native <select>/<datalist> which ignore emoji on Windows Chrome/Edge.
+ * Flag images: Twemoji SVGs stored locally at /assets/flags/{iso2_lower}.svg
+ * Twemoji © Twitter / jdecked — CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+ * Source: https://github.com/jdecked/twemoji
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
-import { COUNTRIES, type Country } from '@/data/countries';
+import { COUNTRIES } from '@/data/countries';
 
-function flagEmoji(code: string) {
-  return Array.from(code.toUpperCase())
-    .map(c => String.fromCodePoint(127397 + c.charCodeAt(0)))
-    .join('');
+// ─── Flag image component ─────────────────────────────────────────────────────
+function Flag({ code, size = 20 }: { code: string; size?: number }) {
+  const src = `/assets/flags/${code.toLowerCase()}.svg`;
+  return (
+    <img
+      src={src}
+      alt={code}
+      width={size}
+      height={size}
+      style={{ width: size, height: size, objectFit: 'contain', display: 'inline-block', flexShrink: 0 }}
+      // Fallback: hide broken image, show nothing (flag just disappears gracefully)
+      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+      aria-hidden="true"
+      draggable={false}
+    />
+  );
 }
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
@@ -26,20 +39,20 @@ const optionCls =
 const optionActiveCls = 'bg-[var(--accent-dim)] text-[var(--accent)]';
 
 // ─── CountrySelect ────────────────────────────────────────────────────────────
-// Full-width searchable dropdown: shows "🇮🇳 India" in list and trigger.
+// Full-width searchable dropdown: flag image + country name in every row.
 
 interface CountrySelectProps {
-  value: string;           // ISO code
+  value: string;        // ISO code
   onChange: (code: string) => void;
   id?: string;
 }
 
 export function CountrySelect({ value, onChange, id }: CountrySelectProps) {
-  const [open, setOpen]       = useState(false);
-  const [query, setQuery]     = useState('');
-  const wrapRef               = useRef<HTMLDivElement>(null);
-  const searchRef             = useRef<HTMLInputElement>(null);
-  const listRef               = useRef<HTMLUListElement>(null);
+  const [open, setOpen]   = useState(false);
+  const [query, setQuery] = useState('');
+  const wrapRef           = useRef<HTMLDivElement>(null);
+  const searchRef         = useRef<HTMLInputElement>(null);
+  const listRef           = useRef<HTMLUListElement>(null);
 
   const selected = COUNTRIES.find(c => c.code === value) ?? null;
 
@@ -54,25 +67,19 @@ export function CountrySelect({ value, onChange, id }: CountrySelectProps) {
   // Close on outside click / Escape
   useEffect(() => {
     if (!open) return;
-    function handleDown(e: MouseEvent) {
+    function onDown(e: MouseEvent) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false);
-    }
-    document.addEventListener('mousedown', handleDown);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handleDown);
-      document.removeEventListener('keydown', handleKey);
-    };
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false); }
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
-  // Focus search when opened, scroll selected item into view
+  // Auto-focus search, scroll selected into view
   useEffect(() => {
     if (open) {
       setTimeout(() => searchRef.current?.focus(), 30);
-      // Scroll selected option into view
       const el = listRef.current?.querySelector('[data-selected="true"]');
       el?.scrollIntoView({ block: 'nearest' });
     } else {
@@ -80,10 +87,7 @@ export function CountrySelect({ value, onChange, id }: CountrySelectProps) {
     }
   }, [open]);
 
-  function pick(code: string) {
-    onChange(code);
-    setOpen(false);
-  }
+  function pick(code: string) { onChange(code); setOpen(false); }
 
   return (
     <div ref={wrapRef} className="relative w-full">
@@ -98,7 +102,7 @@ export function CountrySelect({ value, onChange, id }: CountrySelectProps) {
       >
         {selected ? (
           <>
-            <span className="text-xl leading-none" aria-hidden="true">{flagEmoji(selected.code)}</span>
+            <Flag code={selected.code} size={20} />
             <span className="flex-1 truncate text-left">{selected.name}</span>
           </>
         ) : (
@@ -111,7 +115,7 @@ export function CountrySelect({ value, onChange, id }: CountrySelectProps) {
         />
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown panel */}
       {open && (
         <div className={dropdownCls}>
           {/* Search bar */}
@@ -127,39 +131,32 @@ export function CountrySelect({ value, onChange, id }: CountrySelectProps) {
               aria-label="Search countries"
             />
             {query && (
-              <button type="button" onClick={() => setQuery('')} className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent)]" aria-label="Clear search">
+              <button type="button" onClick={() => setQuery('')} aria-label="Clear search"
+                className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent)]">
                 <X size={13} />
               </button>
             )}
           </div>
 
           {/* List */}
-          <ul
-            ref={listRef}
-            role="listbox"
-            aria-label="Countries"
-            className="max-h-60 overflow-y-auto overscroll-contain"
-          >
+          <ul ref={listRef} role="listbox" aria-label="Countries"
+            className="max-h-60 overflow-y-auto overscroll-contain">
             {filtered.length === 0 ? (
               <li className="px-4 py-3 text-sm text-[var(--text-muted)]">No countries found.</li>
-            ) : (
-              filtered.map(c => (
-                <li
-                  key={c.code}
-                  role="option"
-                  aria-selected={c.code === value}
-                  data-selected={c.code === value}
-                  onClick={() => pick(c.code)}
-                  className={`${optionCls} ${c.code === value ? optionActiveCls : ''}`}
-                >
-                  <span className="text-xl leading-none w-7 shrink-0 text-center" aria-hidden="true">
-                    {flagEmoji(c.code)}
-                  </span>
-                  <span className="flex-1 truncate">{c.name}</span>
-                  <span className="ml-auto shrink-0 font-mono text-xs text-[var(--text-muted)]">{c.dialCode}</span>
-                </li>
-              ))
-            )}
+            ) : filtered.map(c => (
+              <li
+                key={c.code}
+                role="option"
+                aria-selected={c.code === value}
+                data-selected={c.code === value}
+                onClick={() => pick(c.code)}
+                className={`${optionCls} ${c.code === value ? optionActiveCls : ''}`}
+              >
+                <Flag code={c.code} size={20} />
+                <span className="flex-1 truncate">{c.name}</span>
+                <span className="ml-auto shrink-0 font-mono text-xs text-[var(--text-muted)]">{c.dialCode}</span>
+              </li>
+            ))}
           </ul>
         </div>
       )}
@@ -168,10 +165,11 @@ export function CountrySelect({ value, onChange, id }: CountrySelectProps) {
 }
 
 // ─── DialCodeSelect ───────────────────────────────────────────────────────────
-// Compact dropdown (~112px): shows "🇮🇳 +91" in trigger and list.
+// Compact 112px trigger showing flag + dial code. Dropdown is wider (260px)
+// and shows flag + country name + dial code per row.
 
 interface DialCodeSelectProps {
-  value: string;           // ISO code
+  value: string;        // ISO code
   onChange: (code: string) => void;
 }
 
@@ -194,18 +192,13 @@ export function DialCodeSelect({ value, onChange }: DialCodeSelectProps) {
 
   useEffect(() => {
     if (!open) return;
-    function handleDown(e: MouseEvent) {
+    function onDown(e: MouseEvent) {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false);
-    }
-    document.addEventListener('mousedown', handleDown);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handleDown);
-      document.removeEventListener('keydown', handleKey);
-    };
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false); }
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
   useEffect(() => {
@@ -218,41 +211,37 @@ export function DialCodeSelect({ value, onChange }: DialCodeSelectProps) {
     }
   }, [open]);
 
-  function pick(code: string) {
-    onChange(code);
-    setOpen(false);
-  }
+  function pick(code: string) { onChange(code); setOpen(false); }
 
   return (
-    // Position relative + z-index so dropdown overlaps the phone input
     <div ref={wrapRef} className="relative shrink-0" style={{ width: 112 }}>
-      {/* Trigger */}
+      {/* Trigger — flag + dial code only */}
       <button
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Country calling code"
         onClick={() => setOpen(o => !o)}
-        className={`${triggerCls} justify-between`}
+        className={`${triggerCls} justify-between px-3`}
       >
         {selected ? (
           <>
-            <span className="text-xl leading-none" aria-hidden="true">{flagEmoji(selected.code)}</span>
+            <Flag code={selected.code} size={18} />
             <span className="font-mono text-xs">{selected.dialCode}</span>
           </>
         ) : (
           <span className="font-mono text-xs text-[var(--text-muted)]/65">+___</span>
         )}
         <ChevronDown
-          size={13}
+          size={12}
           className={`shrink-0 text-[var(--text-muted)] transition-transform ${open ? 'rotate-180' : ''}`}
           aria-hidden="true"
         />
       </button>
 
-      {/* Dropdown — wider than trigger so it's readable */}
+      {/* Dropdown — wider than trigger */}
       {open && (
-        <div className={`${dropdownCls} left-0`} style={{ width: 260 }}>
+        <div className={`${dropdownCls} left-0`} style={{ width: 268 }}>
           {/* Search */}
           <div className="flex items-center gap-2 border-b border-[var(--border)] px-3 py-2">
             <Search size={14} className="shrink-0 text-[var(--text-muted)]" aria-hidden="true" />
@@ -266,39 +255,32 @@ export function DialCodeSelect({ value, onChange }: DialCodeSelectProps) {
               aria-label="Search calling code"
             />
             {query && (
-              <button type="button" onClick={() => setQuery('')} className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent)]" aria-label="Clear">
+              <button type="button" onClick={() => setQuery('')} aria-label="Clear"
+                className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent)]">
                 <X size={13} />
               </button>
             )}
           </div>
 
           {/* List */}
-          <ul
-            ref={listRef}
-            role="listbox"
-            aria-label="Calling codes"
-            className="max-h-60 overflow-y-auto overscroll-contain"
-          >
+          <ul ref={listRef} role="listbox" aria-label="Calling codes"
+            className="max-h-60 overflow-y-auto overscroll-contain">
             {filtered.length === 0 ? (
               <li className="px-4 py-3 text-sm text-[var(--text-muted)]">No results.</li>
-            ) : (
-              filtered.map(c => (
-                <li
-                  key={c.code}
-                  role="option"
-                  aria-selected={c.code === value}
-                  data-selected={c.code === value}
-                  onClick={() => pick(c.code)}
-                  className={`${optionCls} ${c.code === value ? optionActiveCls : ''}`}
-                >
-                  <span className="text-xl leading-none w-7 shrink-0 text-center" aria-hidden="true">
-                    {flagEmoji(c.code)}
-                  </span>
-                  <span className="flex-1 truncate text-xs">{c.name}</span>
-                  <span className="ml-2 shrink-0 font-mono text-xs text-[var(--text-muted)]">{c.dialCode}</span>
-                </li>
-              ))
-            )}
+            ) : filtered.map(c => (
+              <li
+                key={c.code}
+                role="option"
+                aria-selected={c.code === value}
+                data-selected={c.code === value}
+                onClick={() => pick(c.code)}
+                className={`${optionCls} ${c.code === value ? optionActiveCls : ''}`}
+              >
+                <Flag code={c.code} size={20} />
+                <span className="flex-1 truncate text-xs">{c.name}</span>
+                <span className="ml-2 shrink-0 font-mono text-xs text-[var(--text-muted)]">{c.dialCode}</span>
+              </li>
+            ))}
           </ul>
         </div>
       )}

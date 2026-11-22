@@ -34,3 +34,16 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+## Credits & Attributions
+
+### Country Flag Icons
+
+Flag images used in the Contact form are from the [Twemoji](https://github.com/jdecked/twemoji) project.
+
+> Copyright 2020 Twitter, Inc and other contributors  
+> Graphics licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/)  
+> Source: https://github.com/jdecked/twemoji
+
+Flags are stored locally in public/assets/flags/ as SVG files named by ISO 3166-1 alpha-2 country code (e.g. in.svg, us.svg).
