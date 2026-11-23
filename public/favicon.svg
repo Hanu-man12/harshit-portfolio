@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <!-- Dark background circle -->
+  <circle cx="24" cy="24" r="23" fill="#0a0a0a"/>
+  <!-- H left vertical -->
+  <path d="M 8 10 L 8 38" stroke="#dc143c" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- H right vertical -->
+  <path d="M 20 10 L 20 38" stroke="#dc143c" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- H crossbar -->
+  <path d="M 8 24 L 20 24" stroke="#dc143c" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- S curve -->
+  <path d="M 38 14 C 38 10.5 35.5 9 31.5 9 C 26 9 23 12 23 16.5 C 23 20.5 25.5 22.5 30 25 C 34.5 27.5 38 30 38 34.5 C 38 39.5 35 44 29 44 C 24.5 44 22 41.5 22 39" stroke="#dc143c" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

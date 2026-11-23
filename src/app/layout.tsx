@@ -36,12 +36,19 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Harshit Shaw — Backend Developer & Open-Source Contributor',
+  title: {
+    default: 'Harshit Shaw - Cloud Engineer',
+    template: '%s | Harshit Shaw',
+  },
   description: 'Building scalable backend systems, working with PostgreSQL, and exploring real-world AI & cloud solutions.',
   openGraph: {
-    title: 'Harshit Shaw — Backend Developer & Open-Source Contributor',
+    title: 'Harshit Shaw - Cloud Engineer',
     description: 'Building scalable backend systems, working with PostgreSQL, and exploring real-world AI & cloud solutions.',
     images: [{ url: '/images/og/og-image.svg', width: 1200, height: 630 }],
+  },
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
   },
 };
 

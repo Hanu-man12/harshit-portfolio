@@ -68,7 +68,12 @@ export default function Nav() {
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 flex items-center justify-between h-[4.25rem] sm:h-[4.5rem]">
         {/* Left branding: HS monogram + laser divider + signature */}
-        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+        <a
+          href="/"
+          onClick={(e) => { e.preventDefault(); navigateTo('/', 'home'); }}
+          aria-label="Harshit Shaw — home"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0, textDecoration: 'none' }}
+        >
           {/* Animated HS Monogram */}
           <HSMonogram />
 
@@ -76,43 +81,35 @@ export default function Nav() {
           <div
             aria-hidden="true"
             style={{
-              width: 1,
-              height: 22,
-              background: 'var(--accent)',
-              boxShadow: '0 0 6px 1px rgba(220,38,38,0.6)',
+              width: '1.5px',
+              height: 'clamp(24px, 3.5vw, 36px)',
+              background: '#dc143c',
+              boxShadow: '0 0 6px 1px rgba(220,38,38,0.7), 0 0 12px 2px rgba(220,38,38,0.35)',
+              borderRadius: '1px',
               flexShrink: 0,
-              alignSelf: 'center',
             }}
-            className="sm:h-[28px]"
           />
 
           {/* Signature — always visible, responsive sizing */}
-          <a
-            href="/"
-            onClick={(e) => { e.preventDefault(); navigateTo('/', 'home'); }}
-            aria-label="Home"
-            style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
-          >
-            <Image
-              src="/assets/signature/harshit-signature.png"
-              alt="Harshit Shaw signature"
-              width={80}
-              height={40}
-              style={{
-                filter:
-                  'brightness(0) saturate(100%) invert(15%) sepia(90%) saturate(700%) hue-rotate(330deg) brightness(0.9)',
-                mixBlendMode: 'multiply',
-                objectFit: 'contain',
-                maxHeight: 24,
-                width: 'auto',
-                display: 'block',
-              }}
-              className="sm:max-h-[36px]"
-              priority={false}
-              unoptimized
-            />
-          </a>
-        </div>
+          <Image
+            src="/assets/signature/harshit-signature.png"
+            alt="Harshit Shaw signature"
+            width={120}
+            height={60}
+            style={{
+              filter:
+                'brightness(0) saturate(100%) invert(13%) sepia(95%) saturate(600%) hue-rotate(328deg) brightness(1.1)',
+              objectFit: 'contain',
+              height: 'clamp(28px, 4vw, 48px)',
+              width: 'auto',
+              display: 'block',
+              flexShrink: 0,
+            }}
+            className="hs-sig-img"
+            priority={false}
+            unoptimized
+          />
+        </a>
 
         {/* Desktop nav */}
         <nav aria-label="Main navigation" className="hidden min-[900px]:flex items-center gap-3 lg:gap-4 xl:gap-8">
@@ -219,7 +216,7 @@ export default function Nav() {
         )}
       </AnimatePresence>
 
-      {/* Nav underline hover styles */}
+      {/* Nav underline hover styles + signature blend mode */}
       <style>{`
         .nav-link:hover .nav-underline {
           transform: scaleX(1) !important;
@@ -229,6 +226,17 @@ export default function Nav() {
           transform: scaleX(1) !important;
           height: 2px !important;
           opacity: 1 !important;
+        }
+        [data-theme="light"] .hs-sig-img {
+          mix-blend-mode: multiply;
+        }
+        [data-theme="dark"] .hs-sig-img {
+          mix-blend-mode: screen;
+        }
+        @media (max-width: 899px) {
+          .hs-sig-img {
+            height: clamp(22px, 5vw, 32px) !important;
+          }
         }
       `}</style>
     </header>
