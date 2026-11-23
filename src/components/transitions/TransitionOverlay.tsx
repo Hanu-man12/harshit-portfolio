@@ -229,31 +229,9 @@ function WorkCurtain({ onReady, onDone }: CurtainProps) {
   return (
     <div style={{ ...OVERLAY_BASE }}>
       {/* Left panel */}
-      <div ref={leftRef} style={{ ...panelStyle, left: 0 }}>
-        <div
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 0,
-            bottom: 0,
-            width: '2px',
-            background: 'linear-gradient(to bottom, transparent, #dc143c, transparent)',
-          }}
-        />
-      </div>
+      <div ref={leftRef} style={{ ...panelStyle, left: 0 }} />
       {/* Right panel */}
-      <div ref={rightRef} style={{ ...panelStyle, right: 0 }}>
-        <div
-          style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            bottom: 0,
-            width: '2px',
-            background: 'linear-gradient(to bottom, transparent, #dc143c, transparent)',
-          }}
-        />
-      </div>
+      <div ref={rightRef} style={{ ...panelStyle, right: 0 }} />
       {/* Branding text above both panels */}
       <div ref={textRef} style={{ position: 'absolute', inset: 0, zIndex: 10, opacity: 0 }}>
         <BrandingText subtitle="ACCESSING OPEN SOURCE" />
