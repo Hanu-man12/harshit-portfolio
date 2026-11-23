@@ -256,7 +256,7 @@ function WorkCurtain({ onReady, onDone }: CurtainProps) {
       </div>
       {/* Branding text above both panels */}
       <div ref={textRef} style={{ position: 'absolute', inset: 0, zIndex: 10, opacity: 0 }}>
-        <BrandingText subtitle="ACCESSING WORKSPACE" />
+        <BrandingText subtitle="ACCESSING OPEN SOURCE" />
       </div>
     </div>
   );
@@ -311,7 +311,7 @@ function AboutCurtain({ onReady, onDone }: CurtainProps) {
           clipPath: 'circle(0% at 50% 50%)',
         }}
       >
-        <BrandingText subtitle="LOADING PERSONAL PROFILE" />
+        <BrandingText subtitle="LOADING ACHIEVEMENTS" />
         <CrimsonCornerAccents />
         {/* Scan line */}
         <div
@@ -335,7 +335,7 @@ function AboutCurtain({ onReady, onDone }: CurtainProps) {
 }
 
 // ─── Home Orbital Preloader ───────────────────────────────────────────────────
-function HomePreloader({ onDone }: { onDone: () => void }) {
+function HomePreloader({ onReady, onDone }: { onReady: () => void; onDone: () => void }) {
   const topPanelRef = useRef<HTMLDivElement>(null);
   const bottomPanelRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -344,6 +344,7 @@ function HomePreloader({ onDone }: { onDone: () => void }) {
   const progressRef = useRef(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const doneCalledRef = useRef(false);
+  const readyCalledRef = useRef(false);
 
   const triggerReveal = useCallback(() => {
     if (doneCalledRef.current) return;
@@ -351,12 +352,17 @@ function HomePreloader({ onDone }: { onDone: () => void }) {
     const bottom = bottomPanelRef.current;
     const content = contentRef.current;
     if (!top || !bottom || !content) {
+      if (!readyCalledRef.current) { readyCalledRef.current = true; onReady(); }
       onDone();
       return;
     }
 
-    // Dispatch preloader:done exactly when panels START sliding apart
+    // Dispatch preloader:done and fire onReady (router.push('/')) exactly when panels START sliding apart
     window.dispatchEvent(new CustomEvent('preloader:done'));
+    if (!readyCalledRef.current) {
+      readyCalledRef.current = true;
+      onReady();
+    }
 
     const tl = gsap.timeline({
       onComplete: () => {
@@ -368,12 +374,13 @@ function HomePreloader({ onDone }: { onDone: () => void }) {
     tl.to(content, { opacity: 0, duration: 0.25 })
       .to(top, { y: '-100%', duration: 0.8, ease: 'power2.inOut' }, '-=0.1')
       .to(bottom, { y: '100%', duration: 0.8, ease: 'power2.inOut' }, '<');
-  }, [onDone]);
+  }, [onReady, onDone]);
 
   useEffect(() => {
     const safetyTimer = setTimeout(() => {
       if (!doneCalledRef.current) {
         window.dispatchEvent(new CustomEvent('preloader:done'));
+        if (!readyCalledRef.current) { readyCalledRef.current = true; onReady(); }
         doneCalledRef.current = true;
         onDone();
       }
@@ -427,7 +434,6 @@ function HomePreloader({ onDone }: { onDone: () => void }) {
           height: '50%',
           background: '#0a0a0a',
           zIndex: 1,
-          borderBottom: '1px solid rgba(220,20,60,0.25)',
         }}
       />
       {/* Bottom sliding panel */}
@@ -441,7 +447,6 @@ function HomePreloader({ onDone }: { onDone: () => void }) {
           height: '50%',
           background: '#0a0a0a',
           zIndex: 1,
-          borderTop: '1px solid rgba(220,20,60,0.25)',
         }}
       />
 
@@ -645,7 +650,7 @@ export default function TransitionOverlay() {
       {snapshot === 'projects' && <ProjectsCurtain {...curtainProps} />}
       {snapshot === 'work' && <WorkCurtain {...curtainProps} />}
       {snapshot === 'about' && <AboutCurtain {...curtainProps} />}
-      {snapshot === 'home' && <HomePreloader onDone={handleDone} />}
+      {snapshot === 'home' && <HomePreloader onReady={handleReady} onDone={handleDone} />}
     </>
   );
 

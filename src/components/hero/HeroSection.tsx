@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
+import gsap from 'gsap';
 import { profile } from '@/data/profile';
 import { assets } from '@/data/assets';
 import { useMediaTier } from '@/lib/useMediaTier';
@@ -26,6 +27,12 @@ export default function HeroSection() {
   const nameRef = useRef<HTMLHeadingElement>(null);
   const [roleIdx, setRoleIdx] = useState(0);
   const [activeSection, setActiveSection] = useState('hero');
+
+  // Wave animation refs — accessible from both the component and the scramble effect
+  const waveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isWavingRef = useRef(false);
+  // startWave ref holds triggerWave so the scramble effect can call it
+  const startWaveRef = useRef<(() => void) | null>(null);
 
   // Role cycling
   useEffect(() => {
@@ -56,16 +63,88 @@ export default function HeroSection() {
     nameRef.current.style.opacity = '1';
   }, [reduced]);
 
+  // Set up the triggerWave function and store it in startWaveRef
+  // This effect runs once so the ref is stable
+  useEffect(() => {
+    function triggerWave() {
+      // Guard: skip if already running
+      if (isWavingRef.current) return;
+      // Skip if user prefers reduced motion
+      if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      // Skip if nameRef not ready
+      const el = nameRef.current;
+      if (!el) return;
+      const letters = el.querySelectorAll<HTMLElement>('.hero-letter');
+      if (!letters.length) return;
+
+      isWavingRef.current = true;
+
+      const tl = gsap.timeline({
+        onComplete: () => {
+          isWavingRef.current = false;
+        },
+      });
+
+      tl.to(letters, {
+        y: -8,
+        scale: 1.12,
+        color: 'var(--accent)',
+        duration: 0.18,
+        stagger: 0.07,
+        ease: 'power2.out',
+      }).to(letters, {
+        y: 0,
+        scale: 1,
+        color: 'inherit',
+        duration: 0.18,
+        stagger: 0.07,
+        ease: 'power2.in',
+      });
+    }
+
+    startWaveRef.current = triggerWave;
+
+    return () => {
+      startWaveRef.current = null;
+    };
+  }, []);
+
+  // Cleanup wave interval and GSAP on unmount
+  useEffect(() => {
+    return () => {
+      if (waveIntervalRef.current) {
+        clearInterval(waveIntervalRef.current);
+        waveIntervalRef.current = null;
+      }
+      const el = nameRef.current;
+      if (el) {
+        const letters = el.querySelectorAll<HTMLElement>('.hero-letter');
+        if (letters.length) {
+          gsap.killTweensOf(letters);
+        }
+      }
+    };
+  }, []);
+
   // Name scramble — fires after preloader exits on initial load,
   // and also on mount for repeat visits (no preloader shown).
   // After scramble completes, the h1 textContent is replaced with
   // individually-wrapped <span> elements for letter-hover.
+  // Then the auto-wave interval is started.
   useEffect(() => {
     if (reduced || !nameRef.current) return;
 
     const finalText = 'HARSHIT SHAW';
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%';
     const el = nameRef.current;
+
+    function startAutoWave() {
+      // Clear any existing interval before starting
+      if (waveIntervalRef.current) clearInterval(waveIntervalRef.current);
+      waveIntervalRef.current = setInterval(() => {
+        if (startWaveRef.current) startWaveRef.current();
+      }, 4500);
+    }
 
     function buildLetterSpans() {
       if (!el) return;
@@ -88,6 +167,8 @@ export default function HeroSection() {
       });
       el.textContent = '';
       el.appendChild(fragment);
+      // Start the auto-wave after spans are built
+      startAutoWave();
     }
 
     function runScramble() {
@@ -107,7 +188,7 @@ export default function HeroSection() {
         if (frame > total) {
           el.textContent = finalText;
           clearInterval(anim);
-          // After scramble settles, replace text with letter spans for hover
+          // After scramble settles, replace text with letter spans for hover + wave
           buildLetterSpans();
         }
       }, 50);
@@ -121,13 +202,29 @@ export default function HeroSection() {
       el.style.opacity = '0';
       const handler = () => runScramble();
       window.addEventListener('preloader:done', handler, { once: true });
-      return () => window.removeEventListener('preloader:done', handler);
+      return () => {
+        window.removeEventListener('preloader:done', handler);
+        if (waveIntervalRef.current) {
+          clearInterval(waveIntervalRef.current);
+          waveIntervalRef.current = null;
+        }
+      };
     } else {
       // No preloader (navigated back, repeat visit) — ensure visible and run immediately
       el.style.opacity = '1';
       runScramble();
+      return () => {
+        if (waveIntervalRef.current) {
+          clearInterval(waveIntervalRef.current);
+          waveIntervalRef.current = null;
+        }
+      };
     }
   }, [reduced]);
+
+  function handleNameInteraction() {
+    if (startWaveRef.current) startWaveRef.current();
+  }
 
   function scrollToSection(id: string) {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -143,11 +240,13 @@ export default function HeroSection() {
           <span className="text-xs text-[var(--accent)] font-medium">AVAILABLE FOR INTERNSHIPS</span>
         </div>
 
-        {/* Name */}
+        {/* Name — wave triggers on mouse enter (desktop) and touch start (mobile) */}
         <h1
           ref={nameRef}
           className="text-[clamp(3rem,12vw,8rem)] font-display leading-[0.9] text-[var(--text)] mb-4"
-          style={{fontFamily: 'var(--font-display)', opacity: 0}}
+          style={{ fontFamily: 'var(--font-display)', opacity: 0 }}
+          onMouseEnter={handleNameInteraction}
+          onTouchStart={handleNameInteraction}
         >
           HARSHIT SHAW
         </h1>
@@ -157,10 +256,10 @@ export default function HeroSection() {
           <AnimatePresence mode="wait">
             <motion.p
               key={roleIdx}
-              initial={{opacity: 0, y: 10}}
-              animate={{opacity: 1, y: 0}}
-              exit={{opacity: 0, y: -10}}
-              transition={{duration: 0.3}}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
               className="text-lg text-[var(--accent)]"
             >
               {profile.roles[roleIdx]}
@@ -190,7 +289,7 @@ export default function HeroSection() {
       <div className="absolute inset-0 flex items-center justify-center opacity-25 pointer-events-none md:relative md:inset-auto md:flex-1 md:opacity-100 md:pointer-events-auto">
         {tier === 'desktop' ? (
           <Suspense fallback={<div className="w-full h-full" />}>
-            <div style={{width: '100%', height: '100%', minHeight: 500}}>
+            <div style={{ width: '100%', height: '100%', minHeight: 500 }}>
               <PlanetScene />
             </div>
           </Suspense>
@@ -208,7 +307,7 @@ export default function HeroSection() {
         <motion.div
           className="absolute bottom-10 right-10 z-10"
           animate={reduced ? {} : { y: [-10, 10, -10] }}
-          transition={{duration: 4, repeat: Infinity, ease: 'easeInOut'}}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         >
           <Image
             src={assets.hero.astronaut.src}
@@ -229,14 +328,14 @@ export default function HeroSection() {
             key={dot.id}
             onClick={() => scrollToSection(dot.id)}
             aria-label={`Scroll to section ${dot.label}`}
-            className={`flex flex-col items-center gap-1 group`}
+            className="flex flex-col items-center gap-1 group"
           >
             <span
               className={`w-1.5 h-1.5 rounded-full transition-all ${
                 activeSection === dot.id ? 'bg-[var(--accent)] scale-125' : 'bg-[var(--border)]'
               }`}
             />
-            <span className="text-[9px] font-mono text-[var(--text-muted)] group-hover:text-[var(--accent)]" style={{fontFamily: 'var(--font-mono)'}}>
+            <span className="text-[9px] font-mono text-[var(--text-muted)] group-hover:text-[var(--accent)]" style={{ fontFamily: 'var(--font-mono)' }}>
               {dot.label}
             </span>
           </button>

@@ -67,40 +67,51 @@ export default function Nav() {
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--surface)]/90 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 flex items-center justify-between h-[4.25rem] sm:h-[4.5rem]">
-        {/* Left branding: HS monogram + signature */}
-        <div className="flex items-center gap-2">
+        {/* Left branding: HS monogram + laser divider + signature */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          {/* Animated HS Monogram */}
           <HSMonogram />
-          {/* Signature — hidden on mobile, shown md+ */}
+
+          {/* Vertical laser divider */}
           <div
-            className="hidden md:block"
-            style={{
-              transform: 'rotate(65deg)',
-              transformOrigin: 'center center',
-              width: 48,
-              height: 28,
-              overflow: 'visible',
-              flexShrink: 0,
-            }}
             aria-hidden="true"
+            style={{
+              width: 1,
+              height: 22,
+              background: 'var(--accent)',
+              boxShadow: '0 0 6px 1px rgba(220,38,38,0.6)',
+              flexShrink: 0,
+              alignSelf: 'center',
+            }}
+            className="sm:h-[28px]"
+          />
+
+          {/* Signature — always visible, responsive sizing */}
+          <a
+            href="/"
+            onClick={(e) => { e.preventDefault(); navigateTo('/', 'home'); }}
+            aria-label="Home"
+            style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
           >
             <Image
               src="/assets/signature/harshit-signature.png"
-              alt=""
+              alt="Harshit Shaw signature"
               width={80}
               height={40}
               style={{
                 filter:
-                  'sepia(1) saturate(10) hue-rotate(310deg) brightness(0.85)',
+                  'brightness(0) saturate(100%) invert(15%) sepia(90%) saturate(700%) hue-rotate(330deg) brightness(0.9)',
                 mixBlendMode: 'multiply',
-                opacity: 0.75,
                 objectFit: 'contain',
-                width: '80px',
-                height: 'auto',
+                maxHeight: 24,
+                width: 'auto',
+                display: 'block',
               }}
+              className="sm:max-h-[36px]"
               priority={false}
               unoptimized
             />
-          </div>
+          </a>
         </div>
 
         {/* Desktop nav */}

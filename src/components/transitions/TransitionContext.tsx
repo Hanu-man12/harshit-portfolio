@@ -38,6 +38,7 @@ export function getTransitionType(href: string): TransitionType | null {
   if (href === '/' || href === '/#home' || href === '/home') return 'home';
   if (href === '/contact' || href.endsWith('/contact')) return 'contact';
   if (href === '/projects' || href.endsWith('/projects')) return 'projects';
+  if (href === '/open-source' || href.endsWith('/open-source')) return 'work';
   if (
     href === '/experience' ||
     href.endsWith('/experience') ||
@@ -45,7 +46,13 @@ export function getTransitionType(href: string): TransitionType | null {
     href.endsWith('/work')
   )
     return 'work';
-  if (href === '/about' || href.endsWith('/about')) return 'about';
+  if (
+    href === '/achievements' ||
+    href.endsWith('/achievements') ||
+    href === '/certificates' ||
+    href.endsWith('/certificates')
+  )
+    return 'about';
   return null;
 }
 
