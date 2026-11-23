@@ -1,0 +1,17 @@
+{
+  "verdict": "CHANGES_REQUESTED",
+  "findings": [
+    {
+      "id": "B-1",
+      "title": "Nested <a> elements: invalid HTML and bypassed curtain transition",
+      "files": [
+        "src/components/ui/HSMonogram.tsx",
+        "src/components/ui/Nav.tsx"
+      ],
+      "description": "HSMonogram.tsx renders its own <a href=\"/\"> wrapper (lines ~86–98) with an onClick that calls router.push('/') directly. Nav.tsx wraps the entire branding group — HSMonogram, the laser divider, and the signature — in an outer <a href=\"/\"> (lines ~72–96) whose onClick fires navigateTo('/', 'home') to trigger the HomePreloader curtain. Nesting <a> inside <a> is invalid per HTML spec §4.5.1; browsers close the outer anchor before the inner one opens, so the laser divider and signature fall outside the outer link. Clicks on those elements skip the curtain and do a plain href navigation. Clicks on the monogram itself call router.push('/') bypassing the curtain entirely.",
+      "consequence": "The HomePreloader curtain transition is never fired when navigating home by clicking any part of the branding group. The layout is structurally broken in all browsers.",
+      "correction": "Remove the <a> wrapper, useRouter import, and handleClick function from HSMonogram.tsx. Return only the <svg> and <style> elements. Move the .hs-monogram-link class (for hover CSS) to the outer <a> in Nav.tsx so the existing hover styles remain functional."
+    }
+  ],
+  "reviewDoc": "D:\\harshit-portfolio\\.agents\\tasks\\brand-identity-review.md"
+}

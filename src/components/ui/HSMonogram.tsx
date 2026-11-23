@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import gsap from 'gsap';
 
 /**
@@ -32,8 +31,6 @@ export default function HSMonogram() {
   const hBarRef = useRef<SVGPathElement>(null);
   const sPathRef = useRef<SVGPathElement>(null);
   const sweepRef = useRef<SVGRectElement>(null);
-
-  const router = useRouter();
 
   useEffect(() => {
     if (animatedRef.current) return;
@@ -76,34 +73,23 @@ export default function HSMonogram() {
     tl.to(sweep, { opacity: 0, duration: 0.1, ease: 'none' }, '-=0.1');
   }, []);
 
-  function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
-    e.preventDefault();
-    router.push('/');
-  }
-
   return (
-    <a
-      href="/"
-      onClick={handleClick}
-      aria-label="Harshit Shaw home"
-      className="hs-monogram-link"
-      style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}
+    <>
+    <svg
+      ref={svgRef}
+      viewBox="0 0 60 60"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{
+        opacity: 0,
+        overflow: 'visible',
+        display: 'block',
+        height: 'clamp(32px, 4vw, 44px)',
+        width: 'auto',
+      }}
+      aria-hidden="true"
+      className="hs-monogram-svg"
     >
-      <svg
-        ref={svgRef}
-        viewBox="0 0 60 60"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{
-          opacity: 0,
-          overflow: 'visible',
-          display: 'block',
-          height: 'clamp(32px, 4vw, 44px)',
-          width: 'auto',
-        }}
-        aria-hidden="true"
-        className="hs-monogram-svg"
-      >
         <defs>
           <linearGradient id="hs-sweep-grad" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="#dc143c" stopOpacity="0" />
@@ -185,18 +171,10 @@ export default function HSMonogram() {
       </svg>
 
       <style>{`
-        .hs-monogram-link {
-          cursor: pointer;
-          text-decoration: none;
-        }
         .hs-monogram-svg {
           transition: filter 0.2s ease, transform 0.2s ease;
         }
-        .hs-monogram-link:hover .hs-monogram-svg {
-          filter: drop-shadow(0 0 5px rgba(220, 20, 60, 0.7));
-          transform: scale(1.05);
-        }
       `}</style>
-    </a>
+    </>
   );
 }

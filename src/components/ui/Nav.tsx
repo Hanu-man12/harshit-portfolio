@@ -72,6 +72,7 @@ export default function Nav() {
           href="/"
           onClick={(e) => { e.preventDefault(); navigateTo('/', 'home'); }}
           aria-label="Harshit Shaw — home"
+          className="hs-brand-link"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0, textDecoration: 'none' }}
         >
           {/* Animated HS Monogram */}
@@ -226,6 +227,14 @@ export default function Nav() {
           transform: scaleX(1) !important;
           height: 2px !important;
           opacity: 1 !important;
+        }
+        .hs-brand-link {
+          cursor: pointer;
+          text-decoration: none;
+        }
+        .hs-brand-link:hover .hs-monogram-svg {
+          filter: drop-shadow(0 0 5px rgba(220, 20, 60, 0.7));
+          transform: scale(1.05);
         }
         [data-theme="light"] .hs-sig-img {
           mix-blend-mode: multiply;
